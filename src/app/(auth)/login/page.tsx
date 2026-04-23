@@ -196,7 +196,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl border-none">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-2xl">IF</div>
+            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-2xl">BSA</div>
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Login to BSA HRFlow</CardTitle>
           <CardDescription>Enter your credentials to access your portal</CardDescription>
