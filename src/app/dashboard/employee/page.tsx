@@ -92,8 +92,8 @@ export default function EmployeeDashboard() {
       <Card className="border-none shadow-sm overflow-hidden">
         <div className="p-6 border-b bg-muted/10">
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" />
-            Assigned Policies
+            < BookOpen className="h-5 w-5 text-primary" />
+            Policies
           </h2>
           <p className="text-sm text-muted-foreground mt-1">Modules you need to review and acknowledge.</p>
         </div>
