@@ -19,7 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,9 @@ export default function UsersManagementPage() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { toast } = useToast();
 
   // Form State
@@ -58,6 +60,8 @@ export default function UsersManagementPage() {
     role: "Employee",
     department: "Engineering",
   });
+
+  const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, "users"));
@@ -96,7 +100,7 @@ export default function UsersManagementPage() {
         title: "User Added",
         description: `${formData.name} has been added to Firestore.`,
       });
-      setOpen(false);
+      setAddOpen(false);
       setFormData({ name: "", email: "", mobile: "", role: "Employee", department: "Engineering" });
     } catch (error: any) {
       toast({
@@ -106,6 +110,46 @@ export default function UsersManagementPage() {
       });
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleEditClick = (user: UserRecord) => {
+    setEditingUser(user);
+    setFormData({
+      name: user.name || "",
+      email: user.email || "",
+      mobile: user.mobile || "",
+      role: user.role || "Employee",
+      department: user.department || "Engineering",
+    });
+    setEditOpen(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser || !formData.name || !formData.email) return;
+
+    setIsEditing(true);
+    try {
+      const userRef = doc(db, "users", editingUser.id);
+      await updateDoc(userRef, {
+        ...formData,
+        updatedAt: serverTimestamp(),
+      });
+      toast({
+        title: "User Updated",
+        description: `${formData.name}'s record has been updated in Firestore.`,
+      });
+      setEditOpen(false);
+      setEditingUser(null);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message,
+      });
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -140,7 +184,7 @@ export default function UsersManagementPage() {
           <p className="text-muted-foreground">Manage employees, roles, and access permissions in Firestore.</p>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button className="shadow-sm">
               <UserPlus className="mr-2 h-4 w-4" /> Add New User
@@ -155,9 +199,9 @@ export default function UsersManagementPage() {
             </DialogHeader>
             <form onSubmit={handleAddUser} className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="add-name">Full Name</Label>
                 <Input 
-                  id="name" 
+                  id="add-name" 
                   value={formData.name} 
                   onChange={(e) => setFormData({...formData, name: e.target.value})} 
                   placeholder="John Doe" 
@@ -165,9 +209,9 @@ export default function UsersManagementPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="add-email">Email Address</Label>
                 <Input 
-                  id="email" 
+                  id="add-email" 
                   type="email" 
                   value={formData.email} 
                   onChange={(e) => setFormData({...formData, email: e.target.value})} 
@@ -176,9 +220,9 @@ export default function UsersManagementPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="mobile">Mobile Number</Label>
+                <Label htmlFor="add-mobile">Mobile Number</Label>
                 <Input 
-                  id="mobile" 
+                  id="add-mobile" 
                   type="tel" 
                   value={formData.mobile} 
                   onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
@@ -187,12 +231,12 @@ export default function UsersManagementPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="role">Role</Label>
+                  <Label htmlFor="add-role">Role</Label>
                   <Select 
                     value={formData.role} 
                     onValueChange={(v) => setFormData({...formData, role: v})}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="add-role"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Employee">Employee</SelectItem>
                       <SelectItem value="Admin">Admin</SelectItem>
@@ -200,12 +244,12 @@ export default function UsersManagementPage() {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="dept">Department</Label>
+                  <Label htmlFor="add-dept">Department</Label>
                   <Select 
                     value={formData.department} 
                     onValueChange={(v) => setFormData({...formData, department: v})}
                   >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="add-dept"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Engineering">Engineering</SelectItem>
                       <SelectItem value="Marketing">Marketing</SelectItem>
@@ -224,6 +268,85 @@ export default function UsersManagementPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Employee</DialogTitle>
+            <DialogDescription>
+              Update the details for {editingUser?.name} in Firestore.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateUser} className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Full Name</Label>
+              <Input 
+                id="edit-name" 
+                value={formData.name} 
+                onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                placeholder="John Doe" 
+                required 
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-email">Email Address</Label>
+              <Input 
+                id="edit-email" 
+                type="email" 
+                value={formData.email} 
+                onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                placeholder="john@bsa.com" 
+                required 
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-mobile">Mobile Number</Label>
+              <Input 
+                id="edit-mobile" 
+                type="tel" 
+                value={formData.mobile} 
+                onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
+                placeholder="+1 (555) 000-0000" 
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-role">Role</Label>
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(v) => setFormData({...formData, role: v})}
+                >
+                  <SelectTrigger id="edit-role"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Employee">Employee</SelectItem>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-dept">Department</Label>
+                <Select 
+                  value={formData.department} 
+                  onValueChange={(v) => setFormData({...formData, department: v})}
+                >
+                  <SelectTrigger id="edit-dept"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Engineering">Engineering</SelectItem>
+                    <SelectItem value="Marketing">Marketing</SelectItem>
+                    <SelectItem value="Sales">Sales</SelectItem>
+                    <SelectItem value="HR">HR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" disabled={isEditing} className="w-full">
+                {isEditing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</> : "Update User"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Card className="border-none shadow-sm overflow-hidden">
         <CardHeader className="pb-3 border-b bg-muted/10">
@@ -305,6 +428,7 @@ export default function UsersManagementPage() {
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8"
+                            onClick={() => handleEditClick(user)}
                           >
                             <Edit2 className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                           </Button>
@@ -317,6 +441,9 @@ export default function UsersManagementPage() {
                             <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuLabel>User Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleEditClick(user)}>
+                                <Edit2 className="mr-2 h-4 w-4" /> Edit Profile
+                              </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <Mail className="mr-2 h-4 w-4" /> Send Reminder
                               </DropdownMenuItem>
