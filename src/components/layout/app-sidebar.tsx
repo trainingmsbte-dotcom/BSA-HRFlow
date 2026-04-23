@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -45,6 +45,12 @@ const adminItems = [
 
 export function AppSidebar({ role = "employee" }: { role?: "admin" | "employee" }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = () => {
+    // In a real app, clear session/cookies/auth state here
+    router.push("/login");
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -112,7 +118,11 @@ export function AppSidebar({ role = "employee" }: { role?: "admin" | "employee" 
         )}
       </SidebarContent>
       <SidebarFooter className="p-4 border-t">
-        <Button variant="ghost" className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={handleSignOut}
+        >
           <LogOut className="w-5 h-5" />
           <span className="group-data-[collapsible=icon]:hidden">Sign Out</span>
         </Button>
