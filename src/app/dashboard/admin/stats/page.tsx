@@ -21,7 +21,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { TrendingUp, Users, FileCheck, Clock, Loader2 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 
 const COLORS = ['#4460A3', '#50C0D8', '#cbd5e1'];
 
@@ -37,74 +37,79 @@ export default function ComplianceStatsPage() {
   });
 
   useEffect(() => {
-    const unsubUsers = onSnapshot(collection(db, "users"), (userSnap) => {
-      const users = userSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsubPolicies = onSnapshot(collection(db, "policies"), (policySnap) => {
+      const policies = policySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      onSnapshot(collection(db, "policies"), (policySnap) => {
-        const policies = policySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const unsubUsers = onSnapshot(collection(db, "users"), (userSnap) => {
+        const users = userSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
         
-        onSnapshot(collection(db, "completions"), (compSnap) => {
+        const unsubCompletions = onSnapshot(query(collection(db, "completions"), orderBy("completedAt", "desc"), limit(10)), (compSnap) => {
           const completions = compSnap.docs.map(doc => doc.data());
 
           // 1. Completion by Policy (Bar Chart)
-          const statsByPolicy = policies.map((p: any) => {
-            const completedCount = completions.filter(c => c.policyId === p.id).length;
-            const completedPercentage = users.length > 0 ? Math.round((completedCount / users.length) * 100) : 0;
-            return {
-              name: p.title.length > 15 ? p.title.substring(0, 15) + "..." : p.title,
-              completed: completedPercentage,
-              pending: 100 - completedPercentage
-            };
-          });
-          setPolicyStats(statsByPolicy);
+          // We still use the completions collection for this specific granularity
+          onSnapshot(collection(db, "completions"), (allCompSnap) => {
+            const allComps = allCompSnap.docs.map(doc => doc.data());
+            const statsByPolicy = policies.map((p: any) => {
+              const completedCount = allComps.filter(c => c.policyId === p.id).length;
+              const completedPercentage = users.length > 0 ? Math.round((completedCount / users.length) * 100) : 0;
+              return {
+                name: p.title.length > 15 ? p.title.substring(0, 15) + "..." : p.title,
+                completed: completedPercentage > 100 ? 100 : completedPercentage
+              };
+            });
+            setPolicyStats(statsByPolicy);
 
-          // 2. Employee Progress Tracker (Table)
-          // For each completion record, we show it as a "Recent Interaction"
+            // 2. Summary Stats
+            const avgProgress = statsByPolicy.length > 0 ? Math.round(statsByPolicy.reduce((acc, curr) => acc + curr.completed, 0) / statsByPolicy.length) : 0;
+            setOverallStats({
+              avgProgress,
+              activeLearners: users.length,
+              totalCompletions: allComps.length
+            });
+          });
+
+          // 2. Recent Interaction Feed (Table)
           const recentProgress = completions.map((comp: any) => {
-            const user = users.find((u: any) => u.email === comp.userEmail) as any;
+            const user = users.find((u: any) => u.email === comp.userEmail);
             return {
               user: user?.name || comp.userEmail,
               policy: comp.policyTitle || "Unknown Policy",
-              progress: 100,
-              status: "Completed",
+              status: "Acknowledged",
               timestamp: comp.completedAt?.toDate().toLocaleString() || "N/A"
             };
-          }).slice(0, 10); // Last 10 completions
+          });
           setUserProgress(recentProgress);
 
           // 3. Overall Compliance (Pie Chart)
+          // Use user record data for this
           let completedUsers = 0;
           let inProgressUsers = 0;
           let notStartedUsers = 0;
 
           users.forEach((user: any) => {
-            const userComps = completions.filter(c => c.userEmail === user.email);
-            if (userComps.length === policies.length && policies.length > 0) completedUsers++;
-            else if (userComps.length > 0) inProgressUsers++;
+            const userCompsCount = (user.completedPolicies || []).length;
+            if (userCompsCount === policies.length && policies.length > 0) completedUsers++;
+            else if (userCompsCount > 0) inProgressUsers++;
             else notStartedUsers++;
           });
 
           setPieData([
-            { name: 'Completed', value: completedUsers },
+            { name: 'Completed All', value: completedUsers },
             { name: 'In Progress', value: inProgressUsers },
             { name: 'Not Started', value: notStartedUsers },
           ]);
 
-          // 4. Summary Stats
-          const avgProgress = statsByPolicy.length > 0 ? Math.round(statsByPolicy.reduce((acc, curr) => acc + curr.completed, 0) / statsByPolicy.length) : 0;
-          
-          setOverallStats({
-            avgProgress,
-            activeLearners: users.length,
-            totalCompletions: completions.length
-          });
-
           setIsLoading(false);
         });
+
+        return () => unsubCompletions();
       });
+
+      return () => unsubUsers();
     });
 
-    return () => unsubUsers();
+    return () => unsubPolicies();
   }, []);
 
   if (isLoading) {
@@ -120,7 +125,7 @@ export default function ComplianceStatsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-primary">Compliance Analytics</h1>
-          <p className="text-muted-foreground">Detailed insights into policy read progress and team engagement.</p>
+          <p className="text-muted-foreground">Detailed insights into policy engagement and overall team compliance.</p>
         </div>
       </div>
 
@@ -132,27 +137,27 @@ export default function ComplianceStatsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{overallStats.avgProgress}%</div>
-            <p className="text-xs text-muted-foreground font-medium">Across all modules</p>
+            <p className="text-xs text-muted-foreground font-medium">Company average</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Learners</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Employees</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{overallStats.activeLearners}</div>
-            <p className="text-xs text-muted-foreground">Employees in the system</p>
+            <p className="text-xs text-muted-foreground">Total registered users</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Policy Acknowledgments</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Acknowledgments</CardTitle>
             <FileCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{overallStats.totalCompletions}</div>
-            <p className="text-xs text-muted-foreground">Total records in Firestore</p>
+            <p className="text-xs text-muted-foreground">Document read events</p>
           </CardContent>
         </Card>
       </div>
@@ -160,18 +165,17 @@ export default function ComplianceStatsPage() {
       <div className="grid gap-6 md:grid-cols-7">
          <Card className="md:col-span-4 border-none shadow-sm">
             <CardHeader>
-              <CardTitle>Completion by Policy</CardTitle>
-              <CardDescription>Percentage of employees who have acknowledged each module.</CardDescription>
+              <CardTitle>Completion Rate by Policy</CardTitle>
+              <CardDescription>Percentage of the workforce that has acknowledged each specific policy.</CardDescription>
             </CardHeader>
             <CardContent className="h-[350px]">
               <ChartContainer config={{ 
-                completed: { label: "Completed %", color: "hsl(var(--primary))" },
-                pending: { label: "Pending %", color: "hsl(var(--accent))" }
+                completed: { label: "Completed %", color: "hsl(var(--primary))" }
               }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={policyStats} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
                     <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
                     <Tooltip content={<ChartTooltipContent />} />
                     <Bar dataKey="completed" fill="var(--color-completed)" radius={[4, 4, 0, 0]} barSize={40} />
@@ -183,8 +187,8 @@ export default function ComplianceStatsPage() {
 
          <Card className="md:col-span-3 border-none shadow-sm">
             <CardHeader>
-              <CardTitle>Overall Compliance</CardTitle>
-              <CardDescription>Company-wide induction status distribution.</CardDescription>
+              <CardTitle>Induction Status</CardTitle>
+              <CardDescription>Distribution of employees across completion tiers.</CardDescription>
             </CardHeader>
             <CardContent className="h-[350px] flex flex-col items-center justify-center">
                <ResponsiveContainer width="100%" height="80%">
@@ -217,17 +221,17 @@ export default function ComplianceStatsPage() {
 
       <Card className="border-none shadow-sm overflow-hidden">
         <CardHeader className="bg-muted/10 border-b">
-          <CardTitle>Recent Activity Tracker</CardTitle>
-          <CardDescription>Live feed of latest policy acknowledgments and read confirmations.</CardDescription>
+          <CardTitle>Live Activity Feed</CardTitle>
+          <CardDescription>Latest individual policy read confirmations recorded in the system.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/5">
               <TableRow>
                 <TableHead className="pl-6">Employee</TableHead>
-                <TableHead>Target Policy</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right pr-6">Date Completed</TableHead>
+                <TableHead>Policy Module</TableHead>
+                <TableHead>Event</TableHead>
+                <TableHead className="text-right pr-6">Timestamp</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -249,7 +253,7 @@ export default function ComplianceStatsPage() {
               ) : (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-10 text-muted-foreground italic">
-                    No recent activity recorded.
+                    Waiting for activity...
                   </TableCell>
                 </TableRow>
               )}

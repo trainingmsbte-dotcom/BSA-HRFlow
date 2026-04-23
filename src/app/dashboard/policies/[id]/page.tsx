@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, Eye, CheckCircle2, ChevronLeft, AlertCircle, Loader2 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
 
 interface PolicyData {
   title: string;
@@ -46,7 +46,7 @@ export default function PolicyViewerPage() {
           setPolicy(docSnap.data() as PolicyData);
         } else {
           toast({ title: "Error", description: "Policy not found.", variant: "destructive" });
-          router.push("/dashboard/policies");
+          router.push("/dashboard/employee");
         }
       } catch (error) {
         toast({ title: "Error", description: "Failed to load policy.", variant: "destructive" });
@@ -89,12 +89,26 @@ export default function PolicyViewerPage() {
     try {
       const userEmail = localStorage.getItem('userEmail');
       if (userEmail && id) {
+        // 1. Record completion in global collection
         await addDoc(collection(db, "completions"), {
           userEmail,
           policyId: id,
           completedAt: serverTimestamp(),
           policyTitle: policy?.title,
         });
+
+        // 2. Update the user's own record with the completed policy ID
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", userEmail));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          await updateDoc(doc(db, "users", userDoc.id), {
+            completedPolicies: arrayUnion(id),
+            lastActivity: serverTimestamp()
+          });
+        }
       }
 
       toast({
@@ -103,6 +117,7 @@ export default function PolicyViewerPage() {
       });
       router.push("/dashboard/employee");
     } catch (error: any) {
+      console.error(error);
       toast({ title: "Error", description: "Failed to save completion record.", variant: "destructive" });
     } finally {
       setIsSaving(false);
