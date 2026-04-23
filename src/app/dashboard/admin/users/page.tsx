@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -40,6 +40,8 @@ interface UserRecord {
   role: string;
   department: string;
   status: string;
+  passkey?: string;
+  requiresChange?: boolean;
 }
 
 export default function UsersManagementPage() {
@@ -59,6 +61,7 @@ export default function UsersManagementPage() {
     mobile: "",
     role: "Employee",
     department: "Engineering",
+    passkey: "",
   });
 
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
@@ -87,21 +90,33 @@ export default function UsersManagementPage() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) return;
+    if (!formData.name || !formData.email || !formData.passkey) {
+      return toast({
+        variant: "destructive",
+        title: "Missing Fields",
+        description: "Please fill in Name, Email, and a Default Passkey.",
+      });
+    }
 
     setIsAdding(true);
     try {
       await addDoc(collection(db, "users"), {
-        ...formData,
+        name: formData.name,
+        email: formData.email,
+        mobile: formData.mobile,
+        role: formData.role,
+        department: formData.department,
+        passkey: formData.passkey,
+        requiresChange: true,
         status: "Active",
         createdAt: serverTimestamp(),
       });
       toast({
         title: "User Added",
-        description: `${formData.name} has been added to Firestore.`,
+        description: `${formData.name} has been added with a default passkey.`,
       });
       setAddOpen(false);
-      setFormData({ name: "", email: "", mobile: "", role: "Employee", department: "Engineering" });
+      setFormData({ name: "", email: "", mobile: "", role: "Employee", department: "Engineering", passkey: "" });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -121,6 +136,7 @@ export default function UsersManagementPage() {
       mobile: user.mobile || "",
       role: user.role || "Employee",
       department: user.department || "Engineering",
+      passkey: user.passkey || "",
     });
     setEditOpen(true);
   };
@@ -133,12 +149,17 @@ export default function UsersManagementPage() {
     try {
       const userRef = doc(db, "users", editingUser.id);
       await updateDoc(userRef, {
-        ...formData,
+        name: formData.name,
+        email: formData.email,
+        mobile: formData.mobile,
+        role: formData.role,
+        department: formData.department,
+        passkey: formData.passkey,
         updatedAt: serverTimestamp(),
       });
       toast({
         title: "User Updated",
-        description: `${formData.name}'s record has been updated in Firestore.`,
+        description: `${formData.name}'s record has been updated.`,
       });
       setEditOpen(false);
       setEditingUser(null);
@@ -181,7 +202,7 @@ export default function UsersManagementPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-primary">User Management</h1>
-          <p className="text-muted-foreground">Manage employees, roles, and access permissions in Firestore.</p>
+          <p className="text-muted-foreground">Manage employees, default passkeys, and access permissions.</p>
         </div>
 
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
@@ -194,7 +215,7 @@ export default function UsersManagementPage() {
             <DialogHeader>
               <DialogTitle>Add New Employee</DialogTitle>
               <DialogDescription>
-                Enter the employee details to create a new record in Firestore.
+                Create a new record. The user will be forced to change their passkey on first login.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddUser} className="grid gap-4 py-4">
@@ -228,6 +249,21 @@ export default function UsersManagementPage() {
                   onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
                   placeholder="+1 (555) 000-0000" 
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="add-passkey">Default Passkey</Label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    id="add-passkey" 
+                    type="text" 
+                    className="pl-9"
+                    value={formData.passkey} 
+                    onChange={(e) => setFormData({...formData, passkey: e.target.value})} 
+                    placeholder="TemporaryPassword123" 
+                    required 
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
@@ -274,7 +310,7 @@ export default function UsersManagementPage() {
           <DialogHeader>
             <DialogTitle>Edit Employee</DialogTitle>
             <DialogDescription>
-              Update the details for {editingUser?.name} in Firestore.
+              Update the details for {editingUser?.name}.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateUser} className="grid gap-4 py-4">
@@ -307,6 +343,16 @@ export default function UsersManagementPage() {
                 value={formData.mobile} 
                 onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
                 placeholder="+1 (555) 000-0000" 
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-passkey">Passkey (Leave blank to keep current)</Label>
+              <Input 
+                id="edit-passkey" 
+                type="text" 
+                value={formData.passkey} 
+                onChange={(e) => setFormData({...formData, passkey: e.target.value})} 
+                placeholder="Reset passkey if needed" 
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -413,9 +459,16 @@ export default function UsersManagementPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wider">
-                          {user.department}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wider w-fit">
+                            {user.department}
+                          </Badge>
+                          {user.requiresChange && (
+                            <Badge variant="secondary" className="text-[9px] w-fit">
+                              Passkey Reset Pending
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={user.status === "Active" ? "default" : user.status === "Pending" ? "secondary" : "outline"}>
@@ -445,7 +498,7 @@ export default function UsersManagementPage() {
                                 <Edit2 className="mr-2 h-4 w-4" /> Edit Profile
                               </DropdownMenuItem>
                               <DropdownMenuItem>
-                                <Mail className="mr-2 h-4 w-4" /> Send Reminder
+                                <Mail className="mr-2 h-4 w-4" /> Send Welcome Mail
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
