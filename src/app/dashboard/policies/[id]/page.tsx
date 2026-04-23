@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Clock, Eye, CheckCircle2, ChevronLeft, AlertCircle, Loader2 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 interface PolicyData {
   title: string;
@@ -31,7 +31,7 @@ export default function PolicyViewerPage() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [timeSpent, setTimeSpent] = useState(0);
   const [isAcknowledged, setIsAcknowledged] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const MIN_TIME = 60; // seconds
   const MIN_SCROLL = 80; // percentage
@@ -67,7 +67,7 @@ export default function PolicyViewerPage() {
 
   const isCriteriaMet = scrollProgress >= MIN_SCROLL && timeSpent >= MIN_TIME;
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!isCriteriaMet) {
       toast({
         variant: "destructive",
@@ -85,12 +85,28 @@ export default function PolicyViewerPage() {
       return;
     }
 
-    setIsComplete(true);
-    toast({
-      title: "Policy Completed",
-      description: "Your compliance has been recorded successfully.",
-    });
-    router.push("/dashboard/employee");
+    setIsSaving(true);
+    try {
+      const userEmail = localStorage.getItem('userEmail');
+      if (userEmail && id) {
+        await addDoc(collection(db, "completions"), {
+          userEmail,
+          policyId: id,
+          completedAt: serverTimestamp(),
+          policyTitle: policy?.title,
+        });
+      }
+
+      toast({
+        title: "Policy Completed",
+        description: "Your compliance has been recorded successfully.",
+      });
+      router.push("/dashboard/employee");
+    } catch (error: any) {
+      toast({ title: "Error", description: "Failed to save completion record.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -126,7 +142,7 @@ export default function PolicyViewerPage() {
                 src={policy.pdfUrl.includes('drive.google.com') ? policy.pdfUrl.replace('/view', '/preview') : policy.pdfUrl} 
                 className="w-full flex-1" 
                 title={policy.title}
-                onLoad={() => setScrollProgress(100)} // PDF Iframe can't detect scroll easily, so we simulate completion on load for now or rely on timer
+                onLoad={() => setScrollProgress(100)}
               />
             </CardContent>
             {policy.summary && (
@@ -152,9 +168,9 @@ export default function PolicyViewerPage() {
               <Button 
                 onClick={handleComplete} 
                 className="px-8 shadow-md"
-                disabled={!isCriteriaMet || !isAcknowledged}
+                disabled={!isCriteriaMet || !isAcknowledged || isSaving}
               >
-                Complete Module
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Complete Module"}
               </Button>
             </CardFooter>
           </Card>

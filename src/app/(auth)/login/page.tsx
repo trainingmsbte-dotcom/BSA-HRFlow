@@ -46,6 +46,7 @@ export default function LoginPage() {
       if (username === "admin" && password === "password") {
         localStorage.setItem('userName', 'Administrator');
         localStorage.setItem('userRole', 'Admin');
+        localStorage.setItem('userEmail', 'admin@bsa.com');
         toast({
           title: "Admin Sign In",
           description: "Accessing Administrator Dashboard.",
@@ -97,6 +98,7 @@ export default function LoginPage() {
       } else {
         localStorage.setItem('userName', userData.name);
         localStorage.setItem('userRole', userData.role);
+        localStorage.setItem('userEmail', userData.email);
         toast({
           title: "Login Successful",
           description: `Welcome back, ${userData.name}!`,
@@ -141,9 +143,6 @@ export default function LoginPage() {
         lastPasskeyChange: serverTimestamp(),
       });
       
-      // Update local storage for immediate header update
-      // We don't have the full user object here easily so we fetch or use a dummy for now
-      // Ideally we'd fetch the doc again to get the name/role
       toast({
         title: "Passkey Updated",
         description: "Your security credentials have been updated successfully.",

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,9 +15,9 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Eye, Clock, AlertCircle, Loader2, BookOpen } from "lucide-react";
+import { Eye, Clock, AlertCircle, Loader2, BookOpen, CheckCircle2 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, limit, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, limit, orderBy, where } from "firebase/firestore";
 
 interface Policy {
   id: string;
@@ -30,31 +31,46 @@ interface Policy {
 export default function EmployeeDashboard() {
   const [userName, setUserName] = useState("User");
   const [policies, setPolicies] = useState<Policy[]>([]);
+  const [completions, setCompletions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const overallProgress = 0; // In a real app, calculate from user-specific compliance records
 
   useEffect(() => {
     const storedName = localStorage.getItem('userName');
+    const userEmail = localStorage.getItem('userEmail');
     if (storedName) {
       setUserName(storedName.split(' ')[0]);
     }
 
-    // Fetch policies from Firestore, ordered by creation date
-    const q = query(collection(db, "policies"), orderBy("createdAt", "desc"), limit(10));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // Fetch policies from Firestore
+    const qPolicies = query(collection(db, "policies"), orderBy("createdAt", "desc"), limit(20));
+    const unsubscribePolicies = onSnapshot(qPolicies, (snapshot) => {
       const policiesData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Policy[];
       setPolicies(policiesData);
       setIsLoading(false);
-    }, (error) => {
-      console.error("Firestore error:", error);
-      setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    // Fetch completions for this user
+    let unsubscribeCompletions = () => {};
+    if (userEmail) {
+      const qCompletions = query(collection(db, "completions"), where("userEmail", "==", userEmail));
+      unsubscribeCompletions = onSnapshot(qCompletions, (snapshot) => {
+        const completedIds = snapshot.docs.map(doc => doc.data().policyId);
+        setCompletions(completedIds);
+      });
+    }
+
+    return () => {
+      unsubscribePolicies();
+      unsubscribeCompletions();
+    };
   }, []);
+
+  const overallProgress = policies.length > 0 
+    ? Math.round((completions.length / policies.length) * 100) 
+    : 0;
 
   return (
     <div className="space-y-8">
@@ -93,42 +109,52 @@ export default function EmployeeDashboard() {
                   <TableHead>Category</TableHead>
                   <TableHead>Requirement</TableHead>
                   <TableHead>Est. Time</TableHead>
-                  <TableHead className="text-right pr-6">Action</TableHead>
+                  <TableHead className="text-right pr-6">Status & Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {policies.map((policy) => (
-                  <TableRow key={policy.id} className="hover:bg-muted/5 transition-colors group">
-                    <TableCell className="font-semibold pl-6 py-4">
-                      {policy.title}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="font-medium">
-                        {policy.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {policy.isMandatory ? (
-                        <Badge className="bg-primary/10 text-primary border-primary/20">Mandatory</Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">Optional</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
-                        <Clock className="h-3.5 w-3.5" />
-                        5 mins
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-6">
-                      <Button asChild variant="outline" size="sm" className="group-hover:bg-primary group-hover:text-white transition-all">
-                        <Link href={`/dashboard/policies/${policy.id}`}>
-                          <Eye className="mr-2 h-4 w-4" /> View
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {policies.map((policy) => {
+                  const isCompleted = completions.includes(policy.id);
+                  return (
+                    <TableRow key={policy.id} className="hover:bg-muted/5 transition-colors group">
+                      <TableCell className="font-semibold pl-6 py-4">
+                        {policy.title}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="font-medium">
+                          {policy.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {policy.isMandatory ? (
+                          <Badge className="bg-primary/10 text-primary border-primary/20">Mandatory</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">Optional</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+                          <Clock className="h-3.5 w-3.5" />
+                          5 mins
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <div className="flex items-center justify-end gap-3">
+                          {isCompleted && (
+                            <Badge className="bg-green-600 text-white border-none gap-1 py-1">
+                              <CheckCircle2 className="h-3 w-3" /> Accepted
+                            </Badge>
+                          )}
+                          <Button asChild variant={isCompleted ? "outline" : "default"} size="sm" className="transition-all">
+                            <Link href={`/dashboard/policies/${policy.id}`}>
+                              <Eye className="mr-2 h-4 w-4" /> View
+                            </Link>
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
