@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Save, FileText, ChevronLeft, Loader2, ExternalLink, FileType } from "lucide-react";
+import { Sparkles, Save, FileText, ChevronLeft, Loader2, ExternalLink, FileType, Plus } from "lucide-react";
 import { adminPolicySummarization } from "@/ai/flows/admin-policy-summarization";
 import { generateQuizQuestions } from "@/ai/flows/admin-quiz-question-generation";
 import { db } from "@/lib/firebase";
@@ -19,6 +19,8 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 export default function NewPolicyPage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [pdfUrl, setPdfUrl] = useState("");
   const [isMandatory, setIsMandatory] = useState(true);
   const [summary, setSummary] = useState("");
@@ -59,7 +61,9 @@ export default function NewPolicyPage() {
   };
 
   const handleSave = async () => {
-    if (!title || !pdfUrl || !category) {
+    const finalCategory = isCustomCategory ? customCategory : category;
+    
+    if (!title || !pdfUrl || !finalCategory) {
       return toast({ title: "Required Fields", description: "Please provide a title, category and PDF link.", variant: "destructive" });
     }
 
@@ -67,7 +71,7 @@ export default function NewPolicyPage() {
     try {
       await addDoc(collection(db, "policies"), {
         title,
-        category,
+        category: finalCategory,
         pdfUrl,
         isMandatory,
         summary,
@@ -75,7 +79,7 @@ export default function NewPolicyPage() {
         completionRate: 0,
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
-        description: summary || `Compliance document for ${category}`,
+        description: summary || `Compliance document for ${finalCategory}`,
         version: "1.0.0"
       });
 
@@ -85,6 +89,16 @@ export default function NewPolicyPage() {
       toast({ title: "Save Failed", description: error.message, variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const onCategoryChange = (value: string) => {
+    if (value === "custom") {
+      setIsCustomCategory(true);
+      setCategory("");
+    } else {
+      setIsCustomCategory(false);
+      setCategory(value);
     }
   };
 
@@ -110,16 +124,29 @@ export default function NewPolicyPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Select onValueChange={setCategory}>
-                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="IT Security">IT & Security</SelectItem>
-                      <SelectItem value="HR">HR & Conduct</SelectItem>
-                      <SelectItem value="Safety">Health & Safety</SelectItem>
-                      <SelectItem value="Legal">Legal Compliance</SelectItem>
-                      <SelectItem value="General">General</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Select onValueChange={onCategoryChange}>
+                      <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="IT Security">IT & Security</SelectItem>
+                        <SelectItem value="HR">HR & Conduct</SelectItem>
+                        <SelectItem value="Safety">Health & Safety</SelectItem>
+                        <SelectItem value="Legal">Legal Compliance</SelectItem>
+                        <SelectItem value="General">General</SelectItem>
+                        <SelectItem value="custom" className="text-primary font-medium">
+                          <Plus className="mr-2 h-4 w-4 inline-block" /> Add Custom Category...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {isCustomCategory && (
+                      <Input 
+                        placeholder="Enter custom category name" 
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        className="animate-in slide-in-from-top-1 duration-200"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
