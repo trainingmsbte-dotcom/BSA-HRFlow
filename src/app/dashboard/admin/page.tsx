@@ -1,6 +1,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -125,7 +126,9 @@ export default function AdminDashboard() {
               </div>
               <Progress value={41} className="h-2 bg-muted" />
             </div>
-            <Button variant="outline" className="w-full mt-4">View All Detailed Reports</Button>
+            <Button variant="outline" className="w-full mt-4" asChild>
+              <Link href="/dashboard/admin/stats">View All Detailed Reports</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
