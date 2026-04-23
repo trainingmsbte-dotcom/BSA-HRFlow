@@ -11,7 +11,8 @@ import {
   ShieldCheck, 
   LogOut, 
   Settings,
-  Bell
+  Bell,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -37,6 +38,7 @@ const menuItems = [
 
 const adminItems = [
   { name: "Policy Management", href: "/dashboard/admin/policies", icon: ShieldCheck },
+  { name: "Users", href: "/dashboard/admin/users", icon: Users },
   { name: "Compliance Stats", href: "/dashboard/admin/stats", icon: BarChart3 },
   { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
 ];
