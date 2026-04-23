@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -9,8 +10,15 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 
 export default function EmployeeDashboard() {
-  const userName = "Jane";
+  const [userName, setUserName] = useState("User");
   const overallProgress = 65;
+
+  useEffect(() => {
+    const storedName = localStorage.getItem('userName');
+    if (storedName) {
+      setUserName(storedName.split(' ')[0]); // Get first name
+    }
+  }, []);
 
   const assignedPolicies = [
     { id: "1", title: "Company Culture & Values", category: "General", status: "Completed", mandatory: true },

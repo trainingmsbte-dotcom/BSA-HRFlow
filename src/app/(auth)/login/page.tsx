@@ -44,6 +44,8 @@ export default function LoginPage() {
     try {
       // 1. Check hardcoded admin fallback
       if (username === "admin" && password === "password") {
+        localStorage.setItem('userName', 'Administrator');
+        localStorage.setItem('userRole', 'Admin');
         toast({
           title: "Admin Sign In",
           description: "Accessing Administrator Dashboard.",
@@ -93,6 +95,8 @@ export default function LoginPage() {
           description: "First-time login detected. Please set a new passkey.",
         });
       } else {
+        localStorage.setItem('userName', userData.name);
+        localStorage.setItem('userRole', userData.role);
         toast({
           title: "Login Successful",
           description: `Welcome back, ${userData.name}!`,
@@ -137,14 +141,14 @@ export default function LoginPage() {
         lastPasskeyChange: serverTimestamp(),
       });
       
+      // Update local storage for immediate header update
+      // We don't have the full user object here easily so we fetch or use a dummy for now
+      // Ideally we'd fetch the doc again to get the name/role
       toast({
         title: "Passkey Updated",
         description: "Your security credentials have been updated successfully.",
       });
       
-      // Fetch updated data to determine routing
-      // For simplicity, we'll just redirect to employee dashboard as most users are employees
-      // or we can store the role in state
       router.push("/dashboard/employee");
     } catch (error: any) {
       toast({

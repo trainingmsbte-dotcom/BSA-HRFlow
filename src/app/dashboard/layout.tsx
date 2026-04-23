@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Bell, Search, User } from "lucide-react";
@@ -9,13 +10,22 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  // In a real app, fetch role from context/firebase
-  const role = "admin"; 
+  const [userName, setUserName] = useState<string>("User");
+  const [userRole, setUserRole] = useState<string>("employee");
+
+  useEffect(() => {
+    // Access localStorage on the client after hydration
+    const storedName = localStorage.getItem('userName');
+    const storedRole = localStorage.getItem('userRole');
+    
+    if (storedName) setUserName(storedName);
+    if (storedRole) setUserRole(storedRole.toLowerCase());
+  }, []);
 
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex h-screen w-full overflow-hidden bg-background">
-        <AppSidebar role={role} />
+        <AppSidebar role={userRole as "admin" | "employee"} />
         <SidebarInset className="flex flex-col flex-1 overflow-hidden">
           <header className="h-16 flex items-center justify-between px-6 border-b shrink-0 bg-white">
             <div className="flex items-center gap-4">
@@ -32,12 +42,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </Button>
               <div className="flex items-center gap-3 pl-4 border-l">
                 <div className="text-right hidden sm:block">
-                  <p className="text-sm font-semibold">Jane Doe</p>
-                  <p className="text-xs text-muted-foreground capitalize">{role}</p>
+                  <p className="text-sm font-semibold">{userName}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
                 </div>
                 <Avatar className="h-9 w-9 border shadow-sm cursor-pointer hover:opacity-80">
-                  <AvatarImage src="https://picsum.photos/seed/user/100" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarImage src={`https://picsum.photos/seed/${userName}/100`} />
+                  <AvatarFallback>{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
               </div>
             </div>
