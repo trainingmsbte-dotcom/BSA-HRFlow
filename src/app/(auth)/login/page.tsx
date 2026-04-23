@@ -103,14 +103,6 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : <><LogIn className="mr-2 h-4 w-4" /> Sign In</>}
             </Button>
           </form>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t"></span></div>
-            <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or continue with</span></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline">Google</Button>
-            <Button variant="outline">Microsoft</Button>
-          </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 pt-0">
           {/* Sign up section removed */}
