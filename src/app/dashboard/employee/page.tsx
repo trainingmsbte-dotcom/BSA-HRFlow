@@ -7,31 +7,49 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { BookOpen, CheckCircle2, Clock, AlertCircle, Loader2 } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query, limit } from "firebase/firestore";
+
+interface Policy {
+  id: string;
+  title: string;
+  category: string;
+  isMandatory: boolean;
+  status?: string;
+}
 
 export default function EmployeeDashboard() {
   const [userName, setUserName] = useState("User");
-  const overallProgress = 65;
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const overallProgress = 0; // In a real app, calculate from user-specific compliance records
 
   useEffect(() => {
     const storedName = localStorage.getItem('userName');
     if (storedName) {
-      setUserName(storedName.split(' ')[0]); // Get first name
+      setUserName(storedName.split(' ')[0]);
     }
-  }, []);
 
-  const assignedPolicies = [
-    { id: "1", title: "Company Culture & Values", category: "General", status: "Completed", mandatory: true },
-    { id: "2", title: "IT Security & Data Protection", category: "IT", status: "Pending", mandatory: true },
-    { id: "3", title: "Diversity & Inclusion", category: "HR", status: "Pending", mandatory: false },
-  ];
+    const q = query(collection(db, "policies"), limit(3));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const policiesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Policy[];
+      setPolicies(policiesData);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Welcome, {userName}! 👋</h1>
-          <p className="text-muted-foreground">You are making great progress on your induction journey.</p>
+          <p className="text-muted-foreground">Monitor your induction progress from Firestore.</p>
         </div>
         <Card className="border-none shadow-sm bg-primary text-primary-foreground p-4 md:w-80">
           <div className="flex justify-between items-center mb-2">
@@ -43,43 +61,44 @@ export default function EmployeeDashboard() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {assignedPolicies.map((policy) => (
-          <Card key={policy.id} className="border-none shadow-sm hover:shadow-md transition-shadow group flex flex-col">
-            <CardHeader>
-              <div className="flex justify-between items-start mb-2">
-                <Badge variant={policy.mandatory ? "default" : "outline"} className={policy.mandatory ? "bg-primary" : ""}>
-                  {policy.mandatory ? "Mandatory" : "Optional"}
-                </Badge>
-                <Badge variant="secondary" className="capitalize">{policy.category}</Badge>
-              </div>
-              <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">
-                {policy.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                {policy.status === "Completed" ? (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-green-600 font-medium">Completed</span>
-                  </>
-                ) : (
-                  <>
-                    <Clock className="h-4 w-4" />
-                    <span>Estimated: 5 mins</span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <Button asChild variant={policy.status === "Completed" ? "outline" : "default"} className="w-full">
-                <Link href={`/dashboard/policies/${policy.id}`}>
-                  {policy.status === "Completed" ? "Review Content" : "Start Learning"}
-                </Link>
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+        {isLoading ? (
+          <div className="col-span-full h-32 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : policies.length > 0 ? (
+          policies.map((policy) => (
+            <Card key={policy.id} className="border-none shadow-sm hover:shadow-md transition-shadow group flex flex-col">
+              <CardHeader>
+                <div className="flex justify-between items-start mb-2">
+                  <Badge variant={policy.isMandatory ? "default" : "outline"} className={policy.isMandatory ? "bg-primary" : ""}>
+                    {policy.isMandatory ? "Mandatory" : "Optional"}
+                  </Badge>
+                  <Badge variant="secondary" className="capitalize">{policy.category}</Badge>
+                </div>
+                <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">
+                  {policy.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>Estimated: 5 mins focus</span>
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0">
+                <Button asChild variant="default" className="w-full">
+                  <Link href={`/dashboard/policies/${policy.id}`}>
+                    Start Learning
+                  </Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
+            No policies assigned yet.
+          </div>
+        )}
       </div>
 
       <Card className="border-none shadow-sm bg-accent/5">
@@ -89,7 +108,7 @@ export default function EmployeeDashboard() {
           </div>
           <div>
             <h3 className="font-bold text-lg">Induction Deadline</h3>
-            <p className="text-muted-foreground text-sm">Please complete all mandatory policies by <span className="font-bold">Next Friday, Dec 20th</span> to avoid compliance reminders.</p>
+            <p className="text-muted-foreground text-sm">Please complete all mandatory policies stored in Firestore to ensure compliance.</p>
           </div>
         </CardContent>
       </Card>

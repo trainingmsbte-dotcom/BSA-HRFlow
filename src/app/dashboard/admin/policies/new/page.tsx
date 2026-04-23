@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Save, FileText, ChevronLeft, Loader2, ExternalLink, FileType } from "lucide-react";
 import { adminPolicySummarization } from "@/ai/flows/admin-policy-summarization";
 import { generateQuizQuestions } from "@/ai/flows/admin-quiz-question-generation";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function NewPolicyPage() {
   const [title, setTitle] = useState("");
@@ -23,6 +25,7 @@ export default function NewPolicyPage() {
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const router = useRouter();
   const { toast } = useToast();
@@ -31,7 +34,6 @@ export default function NewPolicyPage() {
     if (!pdfUrl) return toast({ title: "Error", description: "Please add a PDF URL first.", variant: "destructive" });
     setIsSummarizing(true);
     try {
-      // Passing the URL as context for the AI flow simulation
       const result = await adminPolicySummarization({ policyContent: `Analyzing PDF at: ${pdfUrl}` });
       setSummary(result.summary);
       toast({ title: "Summary Generated", description: "AI has successfully summarized the linked PDF." });
@@ -56,12 +58,34 @@ export default function NewPolicyPage() {
     }
   };
 
-  const handleSave = () => {
-    if (!title || !pdfUrl) {
-      return toast({ title: "Required Fields", description: "Please provide a title and PDF link.", variant: "destructive" });
+  const handleSave = async () => {
+    if (!title || !pdfUrl || !category) {
+      return toast({ title: "Required Fields", description: "Please provide a title, category and PDF link.", variant: "destructive" });
     }
-    toast({ title: "Success", description: "Policy saved and assigned." });
-    router.push("/dashboard/admin/policies");
+
+    setIsSaving(true);
+    try {
+      await addDoc(collection(db, "policies"), {
+        title,
+        category,
+        pdfUrl,
+        isMandatory,
+        summary,
+        quizQuestions,
+        completionRate: 0,
+        lastUpdated: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        description: summary || `Compliance document for ${category}`,
+        version: "1.0.0"
+      });
+
+      toast({ title: "Success", description: "Policy saved and published to Firestore." });
+      router.push("/dashboard/admin/policies");
+    } catch (error: any) {
+      toast({ title: "Save Failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -89,10 +113,11 @@ export default function NewPolicyPage() {
                   <Select onValueChange={setCategory}>
                     <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="it">IT & Security</SelectItem>
-                      <SelectItem value="hr">HR & Conduct</SelectItem>
-                      <SelectItem value="safety">Health & Safety</SelectItem>
-                      <SelectItem value="legal">Legal Compliance</SelectItem>
+                      <SelectItem value="IT Security">IT & Security</SelectItem>
+                      <SelectItem value="HR">HR & Conduct</SelectItem>
+                      <SelectItem value="Safety">Health & Safety</SelectItem>
+                      <SelectItem value="Legal">Legal Compliance</SelectItem>
+                      <SelectItem value="General">General</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -118,7 +143,6 @@ export default function NewPolicyPage() {
                     </Button>
                   )}
                 </div>
-                <p className="text-[10px] text-muted-foreground italic">Note: Ensure the URL allows embedding (CORS enabled) or use public Google Drive/OneDrive links.</p>
               </div>
 
               {pdfUrl && (
@@ -187,17 +211,6 @@ export default function NewPolicyPage() {
                 <Label>Version</Label>
                 <Input value="1.0.0" disabled className="bg-muted" />
               </div>
-              <div className="space-y-2 pt-4">
-                <Label>Assign to Department</Label>
-                <Select defaultValue="all">
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
-                    <SelectItem value="eng">Engineering</SelectItem>
-                    <SelectItem value="sales">Sales</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </CardContent>
           </Card>
 
@@ -227,8 +240,9 @@ export default function NewPolicyPage() {
               </Button>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={handleSave}>
-                <Save className="mr-2 h-4 w-4" /> Save & Publish
+              <Button className="w-full" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save & Publish
               </Button>
             </CardFooter>
           </Card>
