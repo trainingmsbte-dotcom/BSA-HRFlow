@@ -37,6 +37,7 @@ export default function EmployeeDashboard() {
   useEffect(() => {
     const storedName = localStorage.getItem('userName');
     const userEmail = localStorage.getItem('userEmail');
+    
     if (storedName) {
       setUserName(storedName.split(' ')[0]);
     }
@@ -140,9 +141,13 @@ export default function EmployeeDashboard() {
                       </TableCell>
                       <TableCell className="text-right pr-6">
                         <div className="flex items-center justify-end gap-3">
-                          {isCompleted && (
+                          {isCompleted ? (
                             <Badge className="bg-green-600 text-white border-none gap-1 py-1">
                               <CheckCircle2 className="h-3 w-3" /> Accepted
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1 py-1">
+                              <Clock className="h-3 w-3" /> Pending
                             </Badge>
                           )}
                           <Button asChild variant={isCompleted ? "outline" : "default"} size="sm" className="transition-all">

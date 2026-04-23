@@ -33,14 +33,12 @@ import { Button } from "@/components/ui/button";
 const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Policies", href: "/dashboard/policies", icon: BookOpen },
-  { name: "Progress", href: "/dashboard/progress", icon: BarChart3 },
 ];
 
 const adminItems = [
   { name: "Policy Management", href: "/dashboard/admin/policies", icon: ShieldCheck },
   { name: "Users", href: "/dashboard/admin/users", icon: Users },
   { name: "Compliance Stats", href: "/dashboard/admin/stats", icon: BarChart3 },
-  { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
 ];
 
 export function AppSidebar({ role = "employee" }: { role?: "admin" | "employee" }) {
@@ -48,7 +46,9 @@ export function AppSidebar({ role = "employee" }: { role?: "admin" | "employee" 
   const router = useRouter();
 
   const handleSignOut = () => {
-    // In a real app, clear session/cookies/auth state here
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userEmail');
     router.push("/login");
   };
 
