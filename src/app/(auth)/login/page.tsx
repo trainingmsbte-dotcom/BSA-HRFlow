@@ -130,10 +130,17 @@ export default function LoginPage() {
       
       toast({
         title: "Passkey Updated",
-        description: "Your security credentials have been updated successfully.",
+        description: "Security credentials updated. Please log in with your new passkey.",
       });
       
-      router.push("/dashboard/employee");
+      // Reset state and redirect to login form
+      setIsFirstLogin(false);
+      setUsername("");
+      setPassword("");
+      setNewPasskey("");
+      setConfirmPasskey("");
+      setCurrentUserDocId(null);
+      setIsLoading(false);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -182,7 +189,7 @@ export default function LoginPage() {
                 />
               </div>
               <Button className="w-full bg-accent hover:bg-accent/90" type="submit" disabled={isLoading}>
-                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</> : <><KeyRound className="mr-2 h-4 w-4" /> Update and Continue</>}
+                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</> : <><KeyRound className="mr-2 h-4 w-4" /> Update and Relogin</>}
               </Button>
             </form>
           </CardContent>
