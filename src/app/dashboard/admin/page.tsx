@@ -6,8 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, FileCheck, AlertCircle, TrendingUp, MoreVertical } from "lucide-react";
+import { Users, FileCheck, AlertCircle, TrendingUp, MoreVertical, Edit, Mail, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 const stats = [
   { name: "Total Employees", value: "248", icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
@@ -25,6 +34,15 @@ const complianceData = [
 ];
 
 export default function AdminDashboard() {
+  const { toast } = useToast();
+
+  const handleAction = (action: string, employee: string) => {
+    toast({
+      title: `${action} triggered`,
+      description: `Action performed for ${employee}.`,
+    });
+  };
+
   return (
     <div className="space-y-8">
       <div>
@@ -83,7 +101,28 @@ export default function AdminDashboard() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel>Compliance Options</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleAction("Send Reminder", user.employee)}>
+                            <Mail className="mr-2 h-4 w-4" /> Send Reminder
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href="/dashboard/admin/stats" className="cursor-pointer">
+                              <BarChart2 className="mr-2 h-4 w-4" /> View Details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction("Edit Assignments", user.employee)}>
+                            <Edit className="mr-2 h-4 w-4" /> Edit Assignments
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}

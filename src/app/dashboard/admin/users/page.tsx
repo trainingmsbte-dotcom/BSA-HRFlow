@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 
 const initialUsers = [
   { id: "1", name: "Alice Smith", email: "alice@bsa.com", role: "Employee", department: "Engineering", status: "Active" },
@@ -27,12 +28,20 @@ const initialUsers = [
 
 export default function UsersManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
 
   const filteredUsers = initialUsers.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleUserAction = (action: string, userName: string) => {
+    toast({
+      title: `${action} triggered`,
+      description: `Performing ${action.toLowerCase()} for ${userName}.`,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -41,7 +50,7 @@ export default function UsersManagementPage() {
           <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">Manage employees, roles, and access permissions.</p>
         </div>
-        <Button className="shadow-sm">
+        <Button className="shadow-sm" onClick={() => handleUserAction("Add New User", "System")}>
           <UserPlus className="mr-2 h-4 w-4" /> Add New User
         </Button>
       </div>
@@ -102,21 +111,35 @@ export default function UsersManagementPage() {
                     </TableCell>
                     <TableCell className="text-right pr-6">
                       <div className="flex justify-end gap-2">
-                         <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Edit2 className="h-4 w-4 text-muted-foreground" />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          onClick={() => handleUserAction("Edit Profile", user.name)}
+                        >
+                          <Edit2 className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuLabel>User Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem><Mail className="mr-2 h-4 w-4" /> Send Reminder</DropdownMenuItem>
-                            <DropdownMenuItem><Edit2 className="mr-2 h-4 w-4" /> Edit Profile</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUserAction("Send Reminder", user.name)}>
+                              <Mail className="mr-2 h-4 w-4" /> Send Reminder
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUserAction("Edit Permissions", user.name)}>
+                              <Shield className="mr-2 h-4 w-4" /> Permissions
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" /> Deactivate Account
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleUserAction("Deactivate", user.name)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Deactivate
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
