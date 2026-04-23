@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2 } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -36,6 +36,7 @@ interface UserRecord {
   id: string;
   name: string;
   email: string;
+  mobile: string;
   role: string;
   department: string;
   status: string;
@@ -53,6 +54,7 @@ export default function UsersManagementPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    mobile: "",
     role: "Employee",
     department: "Engineering",
   });
@@ -95,7 +97,7 @@ export default function UsersManagementPage() {
         description: `${formData.name} has been added to Firestore.`,
       });
       setOpen(false);
-      setFormData({ name: "", email: "", role: "Employee", department: "Engineering" });
+      setFormData({ name: "", email: "", mobile: "", role: "Employee", department: "Engineering" });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -126,6 +128,7 @@ export default function UsersManagementPage() {
   const filteredUsers = users.filter(u => 
     u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.department?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -133,7 +136,7 @@ export default function UsersManagementPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">User Management</h1>
           <p className="text-muted-foreground">Manage employees, roles, and access permissions in Firestore.</p>
         </div>
 
@@ -172,6 +175,16 @@ export default function UsersManagementPage() {
                   required 
                 />
               </div>
+              <div className="grid gap-2">
+                <Label htmlFor="mobile">Mobile Number</Label>
+                <Input 
+                  id="mobile" 
+                  type="tel" 
+                  value={formData.mobile} 
+                  onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
+                  placeholder="+1 (555) 000-0000" 
+                />
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="role">Role</Label>
@@ -203,7 +216,7 @@ export default function UsersManagementPage() {
                 </div>
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" disabled={isAdding}>
+                <Button type="submit" disabled={isAdding} className="w-full">
                   {isAdding ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Create User"}
                 </Button>
               </DialogFooter>
@@ -237,8 +250,8 @@ export default function UsersManagementPage() {
               <TableHeader className="bg-muted/5">
                 <TableRow>
                   <TableHead className="pl-6">User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Department</TableHead>
+                  <TableHead>Contact Information</TableHead>
+                  <TableHead>Role & Dept</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right pr-6">Actions</TableHead>
                 </TableRow>
@@ -255,17 +268,32 @@ export default function UsersManagementPage() {
                           </Avatar>
                           <div className="flex flex-col">
                             <span className="font-semibold text-sm">{user.name}</span>
-                            <span className="text-xs text-muted-foreground">{user.email}</span>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Shield className={`h-3 w-3 ${user.role === 'Admin' ? 'text-primary' : 'text-muted-foreground'}`} />
+                              {user.role}
+                            </span>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          {user.role === "Admin" ? <Shield className="h-3 w-3 text-primary" /> : null}
-                          <span className="text-sm">{user.role}</span>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            {user.email}
+                          </div>
+                          {user.mobile && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Phone className="h-3 w-3" />
+                              {user.mobile}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">{user.department}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wider">
+                          {user.department}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={user.status === "Active" ? "default" : user.status === "Pending" ? "secondary" : "outline"}>
                           {user.status}
