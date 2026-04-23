@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -10,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import { Sparkles, Save, FileText, ChevronLeft, Loader2, ExternalLink, FileType, Plus } from "lucide-react";
 import { adminPolicySummarization } from "@/ai/flows/admin-policy-summarization";
 import { generateQuizQuestions } from "@/ai/flows/admin-quiz-question-generation";
