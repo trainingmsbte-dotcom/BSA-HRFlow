@@ -17,8 +17,19 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-const mockPolicies = [
+const initialPolicies = [
   { id: "1", title: "Remote Work & Digital Security", category: "IT Security", mandatory: true, completionRate: 92, lastUpdated: "2023-11-15" },
   { id: "2", title: "Workplace Health & Safety", category: "Safety", mandatory: true, completionRate: 41, lastUpdated: "2023-10-20" },
   { id: "3", title: "Employee Code of Conduct", category: "HR", mandatory: true, completionRate: 84, lastUpdated: "2023-12-01" },
@@ -28,11 +39,25 @@ const mockPolicies = [
 
 export default function AdminPoliciesPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [policies, setPolicies] = useState(initialPolicies);
+  const [policyToDelete, setPolicyToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const filteredPolicies = mockPolicies.filter(p => 
+  const filteredPolicies = policies.filter(p => 
     p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDelete = () => {
+    if (!policyToDelete) return;
+    
+    setPolicies(prev => prev.filter(p => p.id !== policyToDelete));
+    toast({
+      title: "Policy Deleted",
+      description: "The policy has been successfully removed from the catalog.",
+    });
+    setPolicyToDelete(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -103,29 +128,39 @@ export default function AdminPoliciesPage() {
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{policy.lastUpdated}</TableCell>
                     <TableCell className="text-right pr-6">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel>Policy Management</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/admin/policies/new`} className="cursor-pointer">
-                              <Edit className="mr-2 h-4 w-4" /> Edit Content
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/dashboard/admin/stats`} className="cursor-pointer">
-                              <BarChart2 className="mr-2 h-4 w-4" /> Detailed Stats
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete Policy
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                          <Link href={`/dashboard/admin/policies/new`}>
+                            <Edit className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+                          </Link>
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel>Options</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link href={`/dashboard/admin/policies/new`} className="cursor-pointer">
+                                <Edit className="mr-2 h-4 w-4" /> Edit Content
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/dashboard/admin/stats`} className="cursor-pointer">
+                                <BarChart2 className="mr-2 h-4 w-4" /> View Analytics
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive cursor-pointer"
+                              onClick={() => setPolicyToDelete(policy.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Remove Policy
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -140,6 +175,23 @@ export default function AdminPoliciesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!policyToDelete} onOpenChange={(open) => !open && setPolicyToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently remove the policy and its associated completion data from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Policy
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
