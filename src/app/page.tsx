@@ -15,9 +15,6 @@ export default function LandingPage() {
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="/login">
             Login
           </Link>
-          <Link className="text-sm font-medium hover:underline underline-offset-4" href="/signup">
-            Sign Up
-          </Link>
         </nav>
       </header>
       <main className="flex-1">
@@ -34,10 +31,7 @@ export default function LandingPage() {
               </div>
               <div className="space-x-4">
                 <Button asChild size="lg" className="px-8">
-                  <Link href="/signup">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="px-8">
-                  <Link href="/login">Sign In</Link>
+                  <Link href="/login">Access Portal <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
               </div>
             </div>

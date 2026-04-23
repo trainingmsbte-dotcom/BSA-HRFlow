@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn } from "lucide-react";
+import { LogIn, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -23,20 +24,24 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Mocking successful login for demonstration
-      // In a real app, use Firebase Auth: await signInWithEmailAndPassword(auth, email, password);
-      console.log("Logging in with:", email, password);
-      
-      toast({
-        title: "Welcome back!",
-        description: "Successfully signed in to BSA HRFlow.",
-      });
-
-      // Redirect based on dummy role check
-      if (email.includes("admin")) {
+      // Dummy check for admin credentials
+      if (username === "admin" && password === "password") {
+        toast({
+          title: "Welcome back!",
+          description: "Successfully signed in as Administrator.",
+        });
         router.push("/dashboard/admin");
       } else {
-        router.push("/dashboard/employee");
+        // Just for demo, allowing other logins but checking for "admin" string to route
+        toast({
+          title: "Login Successful",
+          description: "Welcome to BSA HRFlow.",
+        });
+        if (username.toLowerCase().includes("admin")) {
+          router.push("/dashboard/admin");
+        } else {
+          router.push("/dashboard/employee");
+        }
       }
     } catch (error: any) {
       toast({
@@ -60,16 +65,24 @@ export default function LoginPage() {
           <CardDescription>Enter your credentials to access your portal</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
+          <Alert variant="default" className="bg-primary/5 border-primary/20 mb-2">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-xs text-muted-foreground">
+              Demo Credentials:<br />
+              <span className="font-bold">Username:</span> admin / <span className="font-bold">Password:</span> password
+            </AlertDescription>
+          </Alert>
+          
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username or Email</Label>
               <Input 
-                id="email" 
-                type="email" 
-                placeholder="m@example.com" 
+                id="username" 
+                type="text" 
+                placeholder="admin" 
                 required 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -80,6 +93,7 @@ export default function LoginPage() {
               <Input 
                 id="password" 
                 type="password" 
+                placeholder="••••••••"
                 required 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -98,11 +112,8 @@ export default function LoginPage() {
             <Button variant="outline">Microsoft</Button>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <div className="text-center text-sm">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary hover:underline font-medium">Sign up</Link>
-          </div>
+        <CardFooter className="flex flex-col space-y-4 pt-0">
+          {/* Sign up section removed */}
         </CardFooter>
       </Card>
     </div>
