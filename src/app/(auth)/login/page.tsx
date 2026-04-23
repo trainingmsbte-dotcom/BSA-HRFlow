@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,16 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -88,7 +97,26 @@ export default function LoginPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Link href="#" className="text-sm text-primary hover:underline">Forgot password?</Link>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button type="button" className="text-sm text-primary hover:underline font-medium">Forgot password?</button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Reset Password</DialogTitle>
+                      <DialogDescription className="text-base pt-2">
+                        To reset password please contact with Admin.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="sm:justify-end">
+                      <DialogClose asChild>
+                        <Button type="button" variant="secondary">
+                          Close
+                        </Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
               <Input 
                 id="password" 
