@@ -29,7 +29,7 @@ export default function LoginPage() {
       
       toast({
         title: "Welcome back!",
-        description: "Successfully signed in to InductFlow.",
+        description: "Successfully signed in to BSA HRFlow.",
       });
 
       // Redirect based on dummy role check
@@ -56,7 +56,7 @@ export default function LoginPage() {
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-2xl">IF</div>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Login to InductFlow</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">Login to BSA HRFlow</CardTitle>
           <CardDescription>Enter your credentials to access your portal</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
