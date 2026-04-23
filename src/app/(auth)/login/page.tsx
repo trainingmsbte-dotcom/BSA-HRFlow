@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -41,20 +40,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. Check hardcoded admin fallback
-      if (username === "admin" && password === "password") {
-        localStorage.setItem('userName', 'Administrator');
-        localStorage.setItem('userRole', 'Admin');
-        localStorage.setItem('userEmail', 'admin@bsa.com');
-        toast({
-          title: "Admin Sign In",
-          description: "Accessing Administrator Dashboard.",
-        });
-        router.push("/dashboard/admin");
-        return;
-      }
-
-      // 2. Query Firestore for user
+      // 1. Query Firestore for user
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", username));
       const querySnapshot = await getDocs(q);
