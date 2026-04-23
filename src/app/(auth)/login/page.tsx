@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, Info, ShieldAlert, KeyRound, Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LogIn, ShieldAlert, KeyRound, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -217,21 +216,13 @@ export default function LoginPage() {
           <CardDescription>Enter your credentials to access your portal</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <Alert variant="default" className="bg-primary/5 border-primary/20 mb-2">
-            <Info className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-xs text-muted-foreground">
-              Demo Credentials:<br />
-              <span className="font-bold">Username:</span> admin / <span className="font-bold">Password:</span> password
-            </AlertDescription>
-          </Alert>
-          
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username or Email</Label>
               <Input 
                 id="username" 
                 type="text" 
-                placeholder="admin" 
+                placeholder="email@example.com" 
                 required 
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
