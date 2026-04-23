@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-induction",
+      "description": "Welcome to HR Induction",
+      "imageUrl": "https://picsum.photos/seed/induction/1200/600",
+      "imageHint": "office teamwork"
+    },
+    {
+      "id": "policy-icon",
+      "description": "Policy document icon",
+      "imageUrl": "https://picsum.photos/seed/policy/400/400",
+      "imageHint": "document paper"
+    }
+  ]
 }
