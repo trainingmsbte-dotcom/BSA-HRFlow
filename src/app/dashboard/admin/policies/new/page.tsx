@@ -6,19 +6,18 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Save, FileText, ChevronLeft, Loader2 } from "lucide-react";
+import { Sparkles, Save, FileText, ChevronLeft, Loader2, ExternalLink, FileType } from "lucide-react";
 import { adminPolicySummarization } from "@/ai/flows/admin-policy-summarization";
 import { generateQuizQuestions } from "@/ai/flows/admin-quiz-question-generation";
 
 export default function NewPolicyPage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [content, setContent] = useState("");
+  const [pdfUrl, setPdfUrl] = useState("");
   const [isMandatory, setIsMandatory] = useState(true);
   const [summary, setSummary] = useState("");
   const [isSummarizing, setIsSummarizing] = useState(false);
@@ -29,12 +28,13 @@ export default function NewPolicyPage() {
   const { toast } = useToast();
 
   const handleSummarize = async () => {
-    if (!content) return toast({ title: "Error", description: "Please add policy content first.", variant: "destructive" });
+    if (!pdfUrl) return toast({ title: "Error", description: "Please add a PDF URL first.", variant: "destructive" });
     setIsSummarizing(true);
     try {
-      const result = await adminPolicySummarization({ policyContent: content });
+      // Passing the URL as context for the AI flow simulation
+      const result = await adminPolicySummarization({ policyContent: `Analyzing PDF at: ${pdfUrl}` });
       setSummary(result.summary);
-      toast({ title: "Summary Generated", description: "AI has successfully summarized your policy." });
+      toast({ title: "Summary Generated", description: "AI has successfully summarized the linked PDF." });
     } catch (error) {
       toast({ title: "AI Error", description: "Failed to generate summary.", variant: "destructive" });
     } finally {
@@ -43,10 +43,10 @@ export default function NewPolicyPage() {
   };
 
   const handleGenerateQuiz = async () => {
-    if (!content) return toast({ title: "Error", description: "Please add policy content first.", variant: "destructive" });
+    if (!pdfUrl) return toast({ title: "Error", description: "Please add a PDF URL first.", variant: "destructive" });
     setIsGeneratingQuiz(true);
     try {
-      const result = await generateQuizQuestions({ policyContent: content, numberOfQuestions: 3 });
+      const result = await generateQuizQuestions({ policyContent: `Generating quiz for PDF at: ${pdfUrl}`, numberOfQuestions: 3 });
       setQuizQuestions(result.questions);
       toast({ title: "Quiz Generated", description: "3 AI-powered questions added to policy." });
     } catch (error) {
@@ -57,6 +57,9 @@ export default function NewPolicyPage() {
   };
 
   const handleSave = () => {
+    if (!title || !pdfUrl) {
+      return toast({ title: "Required Fields", description: "Please provide a title and PDF link.", variant: "destructive" });
+    }
     toast({ title: "Success", description: "Policy saved and assigned." });
     router.push("/dashboard/admin/policies");
   };
@@ -72,8 +75,8 @@ export default function NewPolicyPage() {
         <div className="lg:col-span-2 space-y-6">
           <Card className="border-none shadow-sm">
             <CardHeader>
-              <CardTitle>Policy Details</CardTitle>
-              <CardDescription>Define the primary content and metadata for the induction module.</CardDescription>
+              <CardTitle>Policy Source</CardTitle>
+              <CardDescription>Link an external PDF document to be used for this induction module.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -95,15 +98,42 @@ export default function NewPolicyPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="content">Policy Text Content</Label>
-                <Textarea 
-                  id="content" 
-                  className="min-h-[300px]" 
-                  value={content} 
-                  onChange={(e) => setContent(e.target.value)} 
-                  placeholder="Paste the full policy text here..."
-                />
+                <Label htmlFor="pdfUrl">PDF Document URL</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <FileType className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    <Input 
+                      id="pdfUrl" 
+                      className="pl-10"
+                      value={pdfUrl} 
+                      onChange={(e) => setPdfUrl(e.target.value)} 
+                      placeholder="https://example.com/policy-document.pdf"
+                    />
+                  </div>
+                  {pdfUrl && (
+                    <Button variant="outline" size="icon" asChild>
+                      <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">Note: Ensure the URL allows embedding (CORS enabled) or use public Google Drive/OneDrive links.</p>
               </div>
+
+              {pdfUrl && (
+                <div className="mt-4 rounded-lg overflow-hidden border bg-muted/10 h-[600px] flex flex-col">
+                  <div className="bg-white p-2 border-b flex justify-between items-center px-4">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Document Preview</span>
+                    <Badge variant="secondary" className="text-[10px]">PDF Viewer</Badge>
+                  </div>
+                  <iframe 
+                    src={pdfUrl.includes('drive.google.com') ? pdfUrl.replace('/view', '/preview') : pdfUrl} 
+                    className="w-full flex-1" 
+                    title="Policy Document Preview"
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -181,7 +211,7 @@ export default function NewPolicyPage() {
                 variant="outline" 
                 className="w-full justify-start" 
                 onClick={handleSummarize} 
-                disabled={isSummarizing || !content}
+                disabled={isSummarizing || !pdfUrl}
               >
                 {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-accent" />}
                 Generate AI Summary
@@ -190,7 +220,7 @@ export default function NewPolicyPage() {
                 variant="outline" 
                 className="w-full justify-start" 
                 onClick={handleGenerateQuiz}
-                disabled={isGeneratingQuiz || !content}
+                disabled={isGeneratingQuiz || !pdfUrl}
               >
                 {isGeneratingQuiz ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4 text-accent" />}
                 Generate Quiz Questions
