@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, Eye, CheckCircle2, ChevronLeft, AlertCircle, Loader2 } from "lucide-react";
+import { Eye, CheckCircle2, ChevronLeft, AlertCircle, Loader2 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, addDoc, collection, serverTimestamp, query, where, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
 
@@ -29,11 +29,9 @@ export default function PolicyViewerPage() {
   const [policy, setPolicy] = useState<PolicyData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [scrollProgress, setScrollProgress] = useState(0);
-  const [timeSpent, setTimeSpent] = useState(0);
   const [isAcknowledged, setIsAcknowledged] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const MIN_TIME = 60; // seconds
   const MIN_SCROLL = 80; // percentage
 
   useEffect(() => {
@@ -57,22 +55,14 @@ export default function PolicyViewerPage() {
     fetchPolicy();
   }, [id, router, toast]);
 
-  useEffect(() => {
-    if (isLoading || !policy) return;
-    const timer = setInterval(() => {
-      setTimeSpent((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isLoading, policy]);
-
-  const isCriteriaMet = scrollProgress >= MIN_SCROLL && timeSpent >= MIN_TIME;
+  const isCriteriaMet = scrollProgress >= MIN_SCROLL;
 
   const handleComplete = async () => {
     if (!isCriteriaMet) {
       toast({
         variant: "destructive",
         title: "Criteria Not Met",
-        description: `Please view document for at least 1 minute.`,
+        description: `Please ensure the document is loaded and viewed.`,
       });
       return;
     }
@@ -206,19 +196,10 @@ export default function PolicyViewerPage() {
                 <p className="text-[10px] text-muted-foreground">Document must be loaded and viewed.</p>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Focus Time</span>
-                  <span className={timeSpent >= MIN_TIME ? "text-green-600" : ""}>{timeSpent}s / {MIN_TIME}s</span>
-                </div>
-                <Progress value={(timeSpent / MIN_TIME) * 100} className="h-2" />
-                <p className="text-[10px] text-muted-foreground">Required focus time: 60 seconds.</p>
-              </div>
-
               <div className="pt-4">
                 <div className={`flex items-start gap-2 p-3 rounded-lg text-xs ${isCriteriaMet ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
                   {isCriteriaMet ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
-                  <span>{isCriteriaMet ? 'Requirements met. You can now acknowledge and complete.' : 'Keep the window active to unlock acknowledgment.'}</span>
+                  <span>{isCriteriaMet ? 'Requirements met. You can now acknowledge and complete.' : 'Please view the document to unlock acknowledgment.'}</span>
                 </div>
               </div>
             </CardContent>
