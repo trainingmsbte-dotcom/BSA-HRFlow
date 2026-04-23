@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -52,10 +53,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </header>
           <main className="flex-1 overflow-y-auto bg-background p-6 flex flex-col">
-            <div className="max-w-7xl mx-auto space-y-6 flex-1">
+            <div className="max-w-7xl mx-auto space-y-6 flex-1 w-full">
               {children}
             </div>
-            <footer className="mt-auto pt-10 pb-6 text-center text-xs text-muted-foreground font-medium">
+            <footer className="mt-auto pt-10 pb-6 text-right text-xs text-muted-foreground font-medium">
               Developed by AD
             </footer>
           </main>
