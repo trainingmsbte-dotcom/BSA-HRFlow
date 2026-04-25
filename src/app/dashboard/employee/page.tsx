@@ -15,7 +15,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Eye, Clock, AlertCircle, Loader2, BookOpen, CheckCircle2 } from "lucide-react";
+import { Eye, Clock, AlertCircle, Loader2, BookOpen, CheckCircle2, FileCheck, FileText } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, limit, orderBy, where } from "firebase/firestore";
 
@@ -88,6 +88,29 @@ export default function EmployeeDashboard() {
           <Progress value={overallProgress} className="h-2 bg-white/20" />
         </Card>
       </div>
+
+      {overallProgress === 100 && policies.length > 0 && (
+        <Card className="border-none shadow-sm bg-green-50 border-l-4 border-l-green-600 animate-in fade-in slide-in-from-top-4 duration-500">
+          <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-xl bg-green-100">
+                <FileCheck className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-bold text-xl text-green-900">Induction Completed!</h3>
+                <p className="text-green-700 text-sm max-w-xl">
+                  Excellent work! You have successfully reviewed all assigned policies. Please generate and sign your final induction declaration form to finalize your records.
+                </p>
+              </div>
+            </div>
+            <Button asChild className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-200 px-6 h-12">
+              <Link href="/dashboard/employee/declaration">
+                <FileText className="mr-2 h-5 w-5" /> Generate Declaration
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-none shadow-sm overflow-hidden">
         <div className="p-6 border-b bg-muted/10">
