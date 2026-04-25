@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { syncUserToSheet } from "@/ai/flows/admin-sync-user-sheet";
 
 interface UserRecord {
   id: string;
@@ -52,6 +53,7 @@ export default function UsersManagementPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [sheetId, setSheetId] = useState("");
   const { toast } = useToast();
 
   // Form State
@@ -67,6 +69,10 @@ export default function UsersManagementPage() {
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
 
   useEffect(() => {
+    // Load sheet ID from localStorage if exists
+    const savedSheetId = localStorage.getItem('google_sheet_id');
+    if (savedSheetId) setSheetId(savedSheetId);
+
     const q = query(collection(db, "users"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const usersData: UserRecord[] = [];
@@ -88,6 +94,14 @@ export default function UsersManagementPage() {
     return () => unsubscribe();
   }, [toast]);
 
+  const handleSaveSheetId = () => {
+    localStorage.setItem('google_sheet_id', sheetId);
+    toast({
+      title: "Settings Saved",
+      description: "Google Sheet ID updated for record synchronization.",
+    });
+  };
+
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.passkey) {
@@ -100,6 +114,7 @@ export default function UsersManagementPage() {
 
     setIsAdding(true);
     try {
+      // 1. Save to Firestore
       await addDoc(collection(db, "users"), {
         name: formData.name,
         email: formData.email,
@@ -111,9 +126,30 @@ export default function UsersManagementPage() {
         status: "Active",
         createdAt: serverTimestamp(),
       });
+
+      // 2. Sync to Google Sheet if configured
+      if (sheetId) {
+        syncUserToSheet({
+          name: formData.name,
+          email: formData.email,
+          mobile: formData.mobile,
+          role: formData.role,
+          department: formData.department,
+          sheetId: sheetId
+        }).then(result => {
+          if (!result.success) {
+            toast({
+              variant: "destructive",
+              title: "Sheet Sync Failed",
+              description: result.message,
+            });
+          }
+        });
+      }
+
       toast({
         title: "User Added",
-        description: `${formData.name} has been added with a default passkey.`,
+        description: `${formData.name} has been added and recorded.`,
       });
       setAddOpen(false);
       setFormData({ name: "", email: "", mobile: "", role: "Employee", department: "Engineering", passkey: "" });
@@ -202,107 +238,119 @@ export default function UsersManagementPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-primary">User Management</h1>
-          <p className="text-muted-foreground">Manage employees, default passkeys, and access permissions.</p>
+          <p className="text-muted-foreground">Manage employees, default passkeys, and record synchronization.</p>
         </div>
 
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="shadow-sm">
-              <UserPlus className="mr-2 h-4 w-4" /> Add New User
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Add New Employee</DialogTitle>
-              <DialogDescription>
-                Create a new record. The user will be forced to change their passkey on first login.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleAddUser} className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="add-name">Full Name</Label>
-                <Input 
-                  id="add-name" 
-                  value={formData.name} 
-                  onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                  placeholder="John Doe" 
-                  required 
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="add-email">Email Address</Label>
-                <Input 
-                  id="add-email" 
-                  type="email" 
-                  value={formData.email} 
-                  onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                  placeholder="john@bsa.com" 
-                  required 
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="add-mobile">Mobile Number</Label>
-                <Input 
-                  id="add-mobile" 
-                  type="tel" 
-                  value={formData.mobile} 
-                  onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
-                  placeholder="+1 (555) 000-0000" 
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="add-passkey">Default Passkey</Label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border shadow-sm">
+            <TableIcon className="h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Google Sheet ID" 
+              className="h-8 w-40 border-none focus-visible:ring-0 shadow-none text-xs" 
+              value={sheetId}
+              onChange={(e) => setSheetId(e.target.value)}
+            />
+            <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={handleSaveSheetId}>Save</Button>
+          </div>
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="shadow-sm">
+                <UserPlus className="mr-2 h-4 w-4" /> Add New User
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Employee</DialogTitle>
+                <DialogDescription>
+                  Create a new record. Data will automatically sync to your shared Google Sheet.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddUser} className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="add-name">Full Name</Label>
                   <Input 
-                    id="add-passkey" 
-                    type="text" 
-                    className="pl-9"
-                    value={formData.passkey} 
-                    onChange={(e) => setFormData({...formData, passkey: e.target.value})} 
-                    placeholder="TemporaryPassword123" 
+                    id="add-name" 
+                    value={formData.name} 
+                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                    placeholder="John Doe" 
                     required 
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="add-role">Role</Label>
-                  <Select 
-                    value={formData.role} 
-                    onValueChange={(v) => setFormData({...formData, role: v})}
-                  >
-                    <SelectTrigger id="add-role"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Employee">Employee</SelectItem>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="add-email">Email Address</Label>
+                  <Input 
+                    id="add-email" 
+                    type="email" 
+                    value={formData.email} 
+                    onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                    placeholder="john@bsa.com" 
+                    required 
+                  />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="add-dept">Department</Label>
-                  <Select 
-                    value={formData.department} 
-                    onValueChange={(v) => setFormData({...formData, department: v})}
-                  >
-                    <SelectTrigger id="add-dept"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Engineering">Engineering</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Sales">Sales</SelectItem>
-                      <SelectItem value="HR">HR</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="add-mobile">Mobile Number</Label>
+                  <Input 
+                    id="add-mobile" 
+                    type="tel" 
+                    value={formData.mobile} 
+                    onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
+                    placeholder="+1 (555) 000-0000" 
+                  />
                 </div>
-              </div>
-              <DialogFooter className="pt-4">
-                <Button type="submit" disabled={isAdding} className="w-full">
-                  {isAdding ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Create User"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <div className="grid gap-2">
+                  <Label htmlFor="add-passkey">Default Passkey</Label>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      id="add-passkey" 
+                      type="text" 
+                      className="pl-9"
+                      value={formData.passkey} 
+                      onChange={(e) => setFormData({...formData, passkey: e.target.value})} 
+                      placeholder="TemporaryPassword123" 
+                      required 
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="add-role">Role</Label>
+                    <Select 
+                      value={formData.role} 
+                      onValueChange={(v) => setFormData({...formData, role: v})}
+                    >
+                      <SelectTrigger id="add-role"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Employee">Employee</SelectItem>
+                        <SelectItem value="Admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="add-dept">Department</Label>
+                    <Select 
+                      value={formData.department} 
+                      onValueChange={(v) => setFormData({...formData, department: v})}
+                    >
+                      <SelectTrigger id="add-dept"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Engineering">Engineering</SelectItem>
+                        <SelectItem value="Marketing">Marketing</SelectItem>
+                        <SelectItem value="Sales">Sales</SelectItem>
+                        <SelectItem value="HR">HR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter className="pt-4">
+                  <Button type="submit" disabled={isAdding} className="w-full">
+                    {isAdding ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Create & Sync"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
