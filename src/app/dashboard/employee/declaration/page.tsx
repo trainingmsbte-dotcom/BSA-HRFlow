@@ -66,35 +66,58 @@ export default function FinalDeclarationPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 p-4 md:p-8 print:p-0 print:m-0">
-      {/* Print-specific CSS Reset */}
+      {/* A4 Print Optimization Styles */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
+          @page {
+            size: A4 portrait;
+            margin: 15mm;
+          }
           html, body {
             height: auto !important;
             overflow: visible !important;
             background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-          /* Hide standard dashboard wrappers */
+          /* Hide standard dashboard elements */
           aside, header, footer, .sidebar-trigger, .print-hidden {
             display: none !important;
           }
-          /* Ensure the main container expands */
+          /* Expand main container */
           main, .sidebar-inset, [data-sidebar="inset"] {
             overflow: visible !important;
             height: auto !important;
             display: block !important;
             padding: 0 !important;
             margin: 0 !important;
+            border: none !important;
           }
           .max-w-4xl {
             max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
           }
-          /* Fix card borders and shadows for print */
-          .shadow-xl {
+          .shadow-xl, .shadow-lg, .shadow-sm {
             box-shadow: none !important;
           }
           .border-none {
             border: 1px solid #e2e8f0 !important;
+          }
+          /* Force color rendering */
+          .bg-primary {
+            background-color: #4460A3 !important;
+            color: white !important;
+          }
+          .bg-muted\\/5 {
+            background-color: rgba(241, 245, 249, 0.5) !important;
+          }
+          .bg-green-600 {
+            background-color: #16a34a !important;
+            color: white !important;
+          }
+          .text-primary {
+            color: #4460A3 !important;
           }
         }
       `}} />
@@ -109,7 +132,7 @@ export default function FinalDeclarationPage() {
           onClick={handlePrint} 
           className="gap-2 shadow-sm"
         >
-          <Printer className="h-4 w-4" /> Print / Save PDF
+          <Printer className="h-4 w-4" /> Print / Save PDF (A4)
         </Button>
       </div>
 
