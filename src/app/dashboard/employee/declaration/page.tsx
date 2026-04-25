@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, Printer, ChevronLeft, Loader2, ShieldCheck, Signature } from "lucide-react";
+import { CheckCircle2, Printer, ChevronLeft, Loader2, ShieldCheck } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
@@ -39,11 +39,6 @@ export default function FinalDeclarationPage() {
         const cSnap = await getDocs(cQuery);
         const cList = cSnap.docs.map(doc => doc.data());
         setCompletions(cList);
-
-        // Optional: Redirect if not actually finished
-        if (pList.length > 0 && cList.length < pList.length) {
-          // toast warning here if needed
-        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -54,7 +49,9 @@ export default function FinalDeclarationPage() {
   }, []);
 
   const handlePrint = () => {
-    window.print();
+    if (typeof window !== "undefined") {
+      window.print();
+    }
   };
 
   if (isLoading) {
@@ -68,17 +65,55 @@ export default function FinalDeclarationPage() {
   const today = new Date().toLocaleDateString();
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 p-4 md:p-8 print:p-0">
-      <div className="flex items-center justify-between print:hidden">
+    <div className="max-w-4xl mx-auto space-y-8 p-4 md:p-8 print:p-0 print:m-0">
+      {/* Print-specific CSS Reset */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            background: white !important;
+          }
+          /* Hide standard dashboard wrappers */
+          aside, header, footer, .sidebar-trigger, .print-hidden {
+            display: none !important;
+          }
+          /* Ensure the main container expands */
+          main, .sidebar-inset, [data-sidebar="inset"] {
+            overflow: visible !important;
+            height: auto !important;
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .max-w-4xl {
+            max-width: 100% !important;
+          }
+          /* Fix card borders and shadows for print */
+          .shadow-xl {
+            box-shadow: none !important;
+          }
+          .border-none {
+            border: 1px solid #e2e8f0 !important;
+          }
+        }
+      `}} />
+
+      <div className="flex items-center justify-between print-hidden">
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2">
           <ChevronLeft className="h-4 w-4" /> Back to Dashboard
         </Button>
-        <Button variant="outline" onClick={handlePrint} className="gap-2 shadow-sm">
+        <Button 
+          variant="outline" 
+          type="button"
+          onClick={handlePrint} 
+          className="gap-2 shadow-sm"
+        >
           <Printer className="h-4 w-4" /> Print / Save PDF
         </Button>
       </div>
 
-      <Card className="border-none shadow-xl print:shadow-none print:border-none print:bg-white overflow-hidden bg-white">
+      <Card id="declaration-card" className="border-none shadow-xl print:shadow-none print:border-none print:bg-white overflow-hidden bg-white">
         <CardHeader className="text-center border-b border-muted bg-muted/5 space-y-4 pb-8">
            <div className="flex justify-center mb-2">
              <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-white text-3xl font-bold shadow-lg">BSA</div>
@@ -160,7 +195,7 @@ export default function FinalDeclarationPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-12 items-end pt-8">
-                <div className="space-y-4 print:hidden">
+                <div className="space-y-4 print-hidden">
                    <Label htmlFor="signature" className="font-bold text-sm text-primary">Employee Digital Acknowledgment</Label>
                    <Input 
                     id="signature" 
@@ -200,7 +235,7 @@ export default function FinalDeclarationPage() {
         </CardFooter>
       </Card>
 
-      <div className="text-center py-6 print:hidden">
+      <div className="text-center py-6 print-hidden">
         <p className="text-xs text-muted-foreground">This document is stored in the company's permanent compliance vault.</p>
       </div>
     </div>
