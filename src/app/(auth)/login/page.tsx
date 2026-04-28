@@ -26,7 +26,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   
-  // Passkey Change State
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [newPasskey, setNewPasskey] = useState("");
   const [confirmPasskey, setConfirmPasskey] = useState("");
@@ -40,13 +39,11 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. Query Firestore for user
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", username));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        // Try querying by name if email didn't match
         const q2 = query(usersRef, where("name", "==", username));
         const querySnapshot2 = await getDocs(q2);
         
@@ -133,7 +130,6 @@ export default function LoginPage() {
         description: "Security credentials updated. Please log in with your new passkey.",
       });
       
-      // Reset state and redirect to login form
       setIsFirstLogin(false);
       setUsername("");
       setPassword("");
@@ -203,7 +199,11 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl border-none">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-2xl">BSA</div>
+            <img 
+              src="https://bsagroup.in/wp-content/uploads/2025/07/bsa-corp-new-logo-july.png" 
+              alt="BSA Logo" 
+              className="h-16 w-auto object-contain"
+            />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Login to BSA HRFlow</CardTitle>
           <CardDescription>Enter your credentials to access your portal</CardDescription>

@@ -55,11 +55,13 @@ export function AppSidebar({ role = "employee" }: { role?: "admin" | "employee" 
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarHeader className="h-16 flex items-center px-6 border-b">
-        <div className="flex items-center gap-2 font-bold text-primary text-xl">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white">
-            BSA
-          </div>
-          <span className="group-data-[collapsible=icon]:hidden">BSA HRFlow</span>
+        <div className="flex items-center gap-2 font-bold text-primary text-xl overflow-hidden">
+          <img 
+            src="https://bsagroup.in/wp-content/uploads/2025/07/bsa-corp-new-logo-july.png" 
+            alt="BSA Logo" 
+            className="h-10 w-auto object-contain min-w-[40px]"
+          />
+          <span className="group-data-[collapsible=icon]:hidden whitespace-nowrap">BSA HRFlow</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="py-4">

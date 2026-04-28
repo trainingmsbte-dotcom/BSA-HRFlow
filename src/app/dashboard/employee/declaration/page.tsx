@@ -71,7 +71,6 @@ export default function FinalDeclarationPage() {
 
   return (
     <div className="min-h-screen bg-muted/30 py-4 px-4 md:py-8 print:p-0 print:bg-white">
-      {/* Black & White One-Page Print Optimization */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
@@ -153,7 +152,6 @@ export default function FinalDeclarationPage() {
       `}} />
 
       <div className="max-w-[210mm] mx-auto space-y-4 declaration-container">
-        {/* Actions Bar */}
         <div className="flex items-center justify-between print-hidden bg-white/80 backdrop-blur-sm p-4 rounded-xl border shadow-sm">
           <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2">
             <ChevronLeft className="h-4 w-4" /> Back
@@ -176,11 +174,14 @@ export default function FinalDeclarationPage() {
           </div>
         </div>
 
-        {/* B&W Simple Declaration Document */}
         <Card className="declaration-paper border border-black shadow-lg bg-white print:border-none print:shadow-none">
           <CardHeader className="text-center py-6 border-b border-black">
-             <div className="flex justify-center mb-2">
-               <div className="w-16 h-16 border-2 border-black flex items-center justify-center text-black text-2xl font-bold">BSA</div>
+             <div className="flex justify-center mb-4">
+               <img 
+                 src="https://bsagroup.in/wp-content/uploads/2025/07/bsa-corp-new-logo-july.png" 
+                 alt="BSA Logo" 
+                 className="h-16 w-auto object-contain"
+               />
              </div>
              <div>
                <h1 className="text-2xl font-bold uppercase">Induction Completion Declaration</h1>
@@ -189,7 +190,6 @@ export default function FinalDeclarationPage() {
           </CardHeader>
           
           <CardContent className="space-y-6 pt-6 px-8 md:px-12">
-             {/* Info Table */}
              <div className="grid grid-cols-2 gap-4 text-sm">
                <div className="space-y-1">
                  <span className="text-[10px] font-bold uppercase">Employee Name</span>
@@ -209,7 +209,6 @@ export default function FinalDeclarationPage() {
                </div>
              </div>
 
-             {/* Policies Table */}
              <div className="space-y-2">
                <h3 className="font-bold text-xs uppercase tracking-tight">Policies Acknowledged</h3>
                <div className="border border-black">
@@ -239,13 +238,11 @@ export default function FinalDeclarationPage() {
                </div>
              </div>
 
-             {/* Declaration Text */}
              <div className="space-y-6">
                 <div className="border border-black p-4 text-xs italic leading-relaxed declaration-text">
                    "I, <strong>{userName}</strong>, hereby declare that I have fully read, understood, and accepted the terms and guidelines outlined in all the induction policy documents listed above. I acknowledge that these policies form part of my professional conduct at BSA. I commit to adhering to these standards as required by the organization."
                 </div>
 
-                {/* Signature Area */}
                 <div className="grid grid-cols-2 gap-10 items-end pt-8">
                   <div className="space-y-1">
                      <span className="text-[10px] font-bold uppercase">Authorized Representative</span>

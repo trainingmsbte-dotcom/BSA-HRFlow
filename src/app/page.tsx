@@ -7,7 +7,11 @@ export default function LandingPage() {
     <div className="flex flex-col min-h-screen">
       <header className="px-4 lg:px-6 h-16 flex items-center border-b">
         <Link className="flex items-center justify-center gap-2" href="/">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold">BSA</div>
+          <img 
+            src="https://bsagroup.in/wp-content/uploads/2025/07/bsa-corp-new-logo-july.png" 
+            alt="BSA Logo" 
+            className="h-10 w-auto object-contain"
+          />
           <span className="font-bold text-xl tracking-tighter text-primary">BSA HRFlow</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
