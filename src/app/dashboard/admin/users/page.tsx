@@ -19,7 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc, serverTimestamp, updateDoc, where, getDocs } from "firebase/firestore";
 import {
   Dialog,
   DialogContent,
@@ -114,6 +114,24 @@ export default function UsersManagementPage() {
 
     setIsAdding(true);
     try {
+      const usersRef = collection(db, "users");
+      
+      // Duplicate check: Email
+      const emailCheck = query(usersRef, where("email", "==", formData.email));
+      const emailSnap = await getDocs(emailCheck);
+      if (!emailSnap.empty) {
+        throw new Error("A user with this email already exists.");
+      }
+
+      // Duplicate check: Mobile
+      if (formData.mobile) {
+        const mobileCheck = query(usersRef, where("mobile", "==", formData.mobile));
+        const mobileSnap = await getDocs(mobileCheck);
+        if (!mobileSnap.empty) {
+          throw new Error("A user with this mobile number already exists.");
+        }
+      }
+
       // Generate a persistent unique 6-digit Employee ID
       const newEmployeeId = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -160,7 +178,7 @@ export default function UsersManagementPage() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Operation Failed",
         description: error.message,
       });
     } finally {
@@ -187,6 +205,26 @@ export default function UsersManagementPage() {
 
     setIsEditing(true);
     try {
+      const usersRef = collection(db, "users");
+      
+      // Email collision check
+      const emailCheck = query(usersRef, where("email", "==", formData.email));
+      const emailSnap = await getDocs(emailCheck);
+      const isEmailDuplicate = emailSnap.docs.some(d => d.id !== editingUser.id);
+      if (isEmailDuplicate) {
+        throw new Error("Another user already has this email.");
+      }
+
+      // Mobile collision check
+      if (formData.mobile) {
+        const mobileCheck = query(usersRef, where("mobile", "==", formData.mobile));
+        const mobileSnap = await getDocs(mobileCheck);
+        const isMobileDuplicate = mobileSnap.docs.some(d => d.id !== editingUser.id);
+        if (isMobileDuplicate) {
+          throw new Error("Another user already has this mobile number.");
+        }
+      }
+
       const userRef = doc(db, "users", editingUser.id);
       await updateDoc(userRef, {
         name: formData.name,
