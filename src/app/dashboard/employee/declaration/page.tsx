@@ -190,7 +190,7 @@ export default function FinalDeclarationPage() {
           </CardHeader>
           
           <CardContent className="space-y-4 pt-4 px-8 md:px-12">
-             <div className="grid grid-cols-2 gap-2 text-sm">
+             <div className="grid grid-cols-2 gap-2 text-xs">
                <div className="space-y-1">
                  <span className="text-[10px] font-bold uppercase">Employee Name</span>
                  <p className="font-bold border-b border-black pb-0.5">{userName}</p>
@@ -205,7 +205,7 @@ export default function FinalDeclarationPage() {
                </div>
                <div className="space-y-1 text-right">
                  <span className="text-[10px] font-bold uppercase">Status</span>
-                 <p className="font-bold border-b border-black pb-0.5 uppercase">COMPLIANT</p>
+                 <p className="font-bold border-b border-black pb-0.5 uppercase text-xs">COMPLIANT</p>
                </div>
              </div>
 
