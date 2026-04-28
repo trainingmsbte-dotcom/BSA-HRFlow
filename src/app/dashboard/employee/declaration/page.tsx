@@ -175,37 +175,37 @@ export default function FinalDeclarationPage() {
         </div>
 
         <Card className="declaration-paper border border-black shadow-lg bg-white print:border-none print:shadow-none">
-          <CardHeader className="text-center py-6 border-b border-black">
-             <div className="flex justify-center mb-4">
+          <CardHeader className="text-center py-4 border-b border-black">
+             <div className="flex justify-center mb-2">
                <img 
                  src="https://bsagroup.in/wp-content/uploads/2025/07/bsa-corp-new-logo-july.png" 
                  alt="BSA Logo" 
-                 className="h-16 w-auto object-contain"
+                 className="h-12 w-auto object-contain"
                />
              </div>
              <div>
-               <h1 className="text-2xl font-bold uppercase">Induction Completion Declaration</h1>
-               <p className="text-sm font-semibold">Official HR Onboarding Record</p>
+               <h1 className="text-xl font-bold uppercase">Induction Completion Declaration</h1>
+               <p className="text-xs font-semibold">Official HR Onboarding Record</p>
              </div>
           </CardHeader>
           
-          <CardContent className="space-y-6 pt-6 px-8 md:px-12">
-             <div className="grid grid-cols-2 gap-4 text-sm">
+          <CardContent className="space-y-4 pt-4 px-8 md:px-12">
+             <div className="grid grid-cols-2 gap-2 text-sm">
                <div className="space-y-1">
                  <span className="text-[10px] font-bold uppercase">Employee Name</span>
-                 <p className="font-bold border-b border-black pb-1">{userName}</p>
+                 <p className="font-bold border-b border-black pb-0.5">{userName}</p>
                </div>
                <div className="space-y-1 text-right">
                  <span className="text-[10px] font-bold uppercase">Date</span>
-                 <p className="font-bold border-b border-black pb-1">{declarationDate}</p>
+                 <p className="font-bold border-b border-black pb-0.5">{declarationDate}</p>
                </div>
                <div className="space-y-1">
                  <span className="text-[10px] font-bold uppercase">Email</span>
-                 <p className="border-b border-black pb-1">{userEmail}</p>
+                 <p className="border-b border-black pb-0.5">{userEmail}</p>
                </div>
                <div className="space-y-1 text-right">
                  <span className="text-[10px] font-bold uppercase">Status</span>
-                 <p className="font-bold border-b border-black pb-1 uppercase">COMPLIANT</p>
+                 <p className="font-bold border-b border-black pb-0.5 uppercase">COMPLIANT</p>
                </div>
              </div>
 
@@ -225,11 +225,11 @@ export default function FinalDeclarationPage() {
                       {policies.map(p => {
                         const comp = completions.find(c => c.policyId === p.id);
                         return (
-                          <TableRow key={p.id} className="border-b border-black last:border-0 h-8">
-                            <TableCell className="text-[10px] font-semibold">{p.title}</TableCell>
-                            <TableCell className="text-[10px]">{p.category}</TableCell>
-                            <TableCell className="text-[10px] font-bold">✓ Accepted</TableCell>
-                            <TableCell className="text-right text-[10px] font-mono">
+                          <TableRow key={p.id} className="border-b border-black last:border-0 h-6">
+                            <TableCell className="text-[10px] font-semibold py-1">{p.title}</TableCell>
+                            <TableCell className="text-[10px] py-1">{p.category}</TableCell>
+                            <TableCell className="text-[10px] font-bold py-1">✓ Accepted</TableCell>
+                            <TableCell className="text-right text-[10px] font-mono py-1">
                               {comp?.completedAt?.toDate()?.toLocaleDateString('en-GB') || "N/A"}
                             </TableCell>
                           </TableRow>
@@ -240,21 +240,21 @@ export default function FinalDeclarationPage() {
                </div>
              </div>
 
-             <div className="space-y-6">
-                <div className="border border-black p-4 text-xs italic leading-relaxed declaration-text">
+             <div className="space-y-4">
+                <div className="border border-black p-3 text-xs italic leading-relaxed declaration-text">
                    "I, <strong>{userName}</strong>, hereby declare that I have fully read, understood, and accepted the terms and guidelines outlined in all the induction policy documents listed above. I acknowledge that these policies form part of my professional conduct at BSA. I commit to adhering to these standards as required by the organization."
                 </div>
 
-                <div className="grid grid-cols-2 gap-10 items-end pt-8">
+                <div className="grid grid-cols-2 gap-10 items-end pt-4">
                   <div className="space-y-1">
                      <span className="text-[10px] font-bold uppercase">Authorized Representative</span>
-                     <div className="border-b border-black h-12"></div>
+                     <div className="border-b border-black h-10"></div>
                      <p className="text-[8px] uppercase mt-1">BSA HR Representative</p>
                   </div>
                   
                   <div className="space-y-1">
                      <span className="text-[10px] font-bold uppercase">Employee Signature</span>
-                     <div className="border-b border-black h-12 flex items-center justify-center">
+                     <div className="border-b border-black h-10 flex items-center justify-center">
                         <span className="text-[10px] text-muted-foreground/30 print:hidden italic">Sign here after printing</span>
                      </div>
                      <div className="flex justify-between items-center text-[8px] uppercase mt-1">
@@ -266,7 +266,7 @@ export default function FinalDeclarationPage() {
              </div>
           </CardContent>
           
-          <CardFooter className="flex justify-between items-center border-t border-black py-4 px-8 md:px-12 text-[8px] uppercase">
+          <CardFooter className="flex justify-between items-center border-t border-black py-2 px-8 md:px-12 text-[8px] uppercase">
              <div>
                 <p className="font-bold">BSA-CERT-IND-{Math.random().toString(36).substring(7).toUpperCase()}</p>
              </div>
