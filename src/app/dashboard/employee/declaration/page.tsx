@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Printer, ChevronLeft, Loader2, Download } from "lucide-react";
+import { Printer, ChevronLeft, Loader2, Download, CheckCircle2 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
@@ -217,6 +217,7 @@ export default function FinalDeclarationPage() {
                       <TableRow className="border-b border-black bg-muted/10">
                         <TableHead className="font-bold text-black text-[10px]">Policy Title</TableHead>
                         <TableHead className="font-bold text-black text-[10px]">Category</TableHead>
+                        <TableHead className="font-bold text-black text-[10px]">Status</TableHead>
                         <TableHead className="text-right font-bold text-black text-[10px]">Date Acknowledged</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -225,8 +226,9 @@ export default function FinalDeclarationPage() {
                         const comp = completions.find(c => c.policyId === p.id);
                         return (
                           <TableRow key={p.id} className="border-b border-black last:border-0 h-8">
-                            <TableCell className="text-[10px]">{p.title}</TableCell>
+                            <TableCell className="text-[10px] font-semibold">{p.title}</TableCell>
                             <TableCell className="text-[10px]">{p.category}</TableCell>
+                            <TableCell className="text-[10px] font-bold">✓ Accepted</TableCell>
                             <TableCell className="text-right text-[10px] font-mono">
                               {comp?.completedAt?.toDate()?.toLocaleDateString('en-GB') || "N/A"}
                             </TableCell>
