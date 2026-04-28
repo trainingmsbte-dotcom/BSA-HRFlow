@@ -6,9 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, Printer, ChevronLeft, Loader2, ShieldCheck, Download, FileText } from "lucide-react";
+import { Printer, ChevronLeft, Loader2, Download } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
@@ -18,7 +17,6 @@ export default function FinalDeclarationPage() {
   const [policies, setPolicies] = useState<any[]>([]);
   const [completions, setCompletions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [signature, setSignature] = useState("");
   const [declarationDate, setDeclarationDate] = useState("");
   const router = useRouter();
 
@@ -151,10 +149,6 @@ export default function FinalDeclarationPage() {
             line-height: 1.4 !important;
             margin-top: 10px !important;
           }
-          .signature-box {
-            border-bottom: 1px solid black !important;
-            min-height: 40px !important;
-          }
         }
       `}} />
 
@@ -252,26 +246,20 @@ export default function FinalDeclarationPage() {
                 </div>
 
                 {/* Signature Area */}
-                <div className="grid grid-cols-2 gap-10 items-end pt-4">
-                  <div className="space-y-2 print-hidden">
-                     <Label htmlFor="signature" className="font-bold text-[10px] uppercase">Digital Signature</Label>
-                     <Input 
-                      id="signature" 
-                      placeholder="Type name here" 
-                      value={signature}
-                      onChange={(e) => setSignature(e.target.value)}
-                      className="border-black h-8 text-sm"
-                     />
+                <div className="grid grid-cols-2 gap-10 items-end pt-8">
+                  <div className="space-y-1">
+                     <span className="text-[10px] font-bold uppercase">Authorized Representative</span>
+                     <div className="border-b border-black h-12"></div>
+                     <p className="text-[8px] uppercase mt-1">BSA HR Representative</p>
                   </div>
                   
-                  <div className="space-y-4">
-                     <div className="border-b border-black pb-2 h-12 flex items-end">
-                        <p className="font-cursive text-2xl text-black">
-                          {signature || userName}
-                        </p>
+                  <div className="space-y-1">
+                     <span className="text-[10px] font-bold uppercase">Employee Signature</span>
+                     <div className="border-b border-black h-12 flex items-center justify-center">
+                        <span className="text-[10px] text-muted-foreground/30 print:hidden italic">Sign here after printing</span>
                      </div>
-                     <div className="flex justify-between items-center text-[8px] uppercase">
-                        <span>Employee Signature</span>
+                     <div className="flex justify-between items-center text-[8px] uppercase mt-1">
+                        <span>{userName}</span>
                         <span className="font-mono">ID: {Date.now().toString().slice(-6)}</span>
                      </div>
                   </div>
