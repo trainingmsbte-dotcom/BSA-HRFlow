@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon, Hash } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon, Hash, Sparkles } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -44,6 +44,7 @@ interface UserRecord {
   status: string;
   passkey?: string;
   requiresChange?: boolean;
+  createdAt?: any;
 }
 
 export default function UsersManagementPage() {
@@ -52,6 +53,7 @@ export default function UsersManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [sheetId, setSheetId] = useState("");
@@ -93,6 +95,71 @@ export default function UsersManagementPage() {
 
     return () => unsubscribe();
   }, [toast]);
+
+  const handleCleanupDuplicates = async () => {
+    if (users.length === 0) return;
+    setIsCleaning(true);
+    try {
+      const emailGroups = new Map<string, UserRecord[]>();
+      const mobileGroups = new Map<string, UserRecord[]>();
+
+      users.forEach(user => {
+        const email = user.email.toLowerCase();
+        if (!emailGroups.has(email)) emailGroups.set(email, []);
+        emailGroups.get(email)?.push(user);
+
+        if (user.mobile) {
+          if (!mobileGroups.has(user.mobile)) mobileGroups.set(user.mobile, []);
+          mobileGroups.get(user.mobile)?.push(user);
+        }
+      });
+
+      let deleteCount = 0;
+      const idsToDelete = new Set<string>();
+
+      // Check Email Duplicates
+      emailGroups.forEach((group) => {
+        if (group.length > 1) {
+          const sorted = [...group].sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeB - timeA; // Latest first
+          });
+          sorted.slice(1).forEach(u => idsToDelete.add(u.id));
+        }
+      });
+
+      // Check Mobile Duplicates
+      mobileGroups.forEach((group) => {
+        if (group.length > 1) {
+          const sorted = [...group].sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeB - timeA; // Latest first
+          });
+          sorted.slice(1).forEach(u => idsToDelete.add(u.id));
+        }
+      });
+
+      for (const id of idsToDelete) {
+        await deleteDoc(doc(db, "users", id));
+        deleteCount++;
+      }
+
+      toast({
+        title: "Cleanup Complete",
+        description: `Successfully identified and removed ${deleteCount} duplicate records.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Cleanup Failed",
+        description: error.message,
+      });
+    } finally {
+      setIsCleaning(false);
+    }
+  };
 
   const handleSaveSheetId = () => {
     localStorage.setItem('google_sheet_id', sheetId);
@@ -284,6 +351,16 @@ export default function UsersManagementPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+            onClick={handleCleanupDuplicates}
+            disabled={isCleaning || users.length === 0}
+          >
+            {isCleaning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            Cleanup Duplicates
+          </Button>
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border shadow-sm">
             <TableIcon className="h-4 w-4 text-muted-foreground" />
             <Input 
