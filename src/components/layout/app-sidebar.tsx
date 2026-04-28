@@ -11,7 +11,8 @@ import {
   LogOut, 
   Settings,
   Bell,
-  Users
+  Users,
+  ClipboardCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -38,7 +39,7 @@ const adminItems = [
   { name: "Admin Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
   { name: "Policy Management", href: "/dashboard/admin/policies", icon: ShieldCheck },
   { name: "Users", href: "/dashboard/admin/users", icon: Users },
-  { name: "Compliance Stats", href: "/dashboard/admin/stats", icon: BarChart3 },
+  { name: "Compliance Tracker", href: "/dashboard/admin/stats", icon: ClipboardCheck },
 ];
 
 export function AppSidebar({ role = "employee" }: { role?: "admin" | "employee" }) {
