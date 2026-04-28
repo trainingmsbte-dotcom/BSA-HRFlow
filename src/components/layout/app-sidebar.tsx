@@ -39,7 +39,7 @@ const adminItems = [
   { name: "Admin Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
   { name: "Policy Management", href: "/dashboard/admin/policies", icon: ShieldCheck },
   { name: "Users", href: "/dashboard/admin/users", icon: Users },
-  { name: "Compliance Tracker", href: "/dashboard/admin/stats", icon: ClipboardCheck },
+  { name: "ID & Certificate Tracker", href: "/dashboard/admin/stats", icon: ClipboardCheck },
 ];
 
 export function AppSidebar({ role = "employee" }: { role?: "admin" | "employee" }) {
