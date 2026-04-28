@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon, Hash, Sparkles } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon, Hash, Sparkles, Wand2 } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -54,6 +54,7 @@ export default function UsersManagementPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
+  const [isFixingIds, setIsFixingIds] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [sheetId, setSheetId] = useState("");
@@ -95,6 +96,35 @@ export default function UsersManagementPage() {
 
     return () => unsubscribe();
   }, [toast]);
+
+  const handleGenerateMissingIds = async () => {
+    const usersWithoutId = users.filter(u => !u.employeeId || u.employeeId === "Not Set");
+    if (usersWithoutId.length === 0) {
+      return toast({ title: "All set", description: "All users already have Employee IDs." });
+    }
+
+    setIsFixingIds(true);
+    try {
+      let fixCount = 0;
+      for (const user of usersWithoutId) {
+        const newEmployeeId = Math.floor(100000 + Math.random() * 900000).toString();
+        const userRef = doc(db, "users", user.id);
+        await updateDoc(userRef, {
+          employeeId: newEmployeeId,
+          updatedAt: serverTimestamp(),
+        });
+        fixCount++;
+      }
+      toast({
+        title: "IDs Generated",
+        description: `Successfully generated unique IDs for ${fixCount} employees.`,
+      });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Operation Failed", description: error.message });
+    } finally {
+      setIsFixingIds(false);
+    }
+  };
 
   const handleCleanupDuplicates = async () => {
     if (users.length === 0) return;
@@ -183,14 +213,12 @@ export default function UsersManagementPage() {
     try {
       const usersRef = collection(db, "users");
       
-      // Duplicate check: Email
       const emailCheck = query(usersRef, where("email", "==", formData.email));
       const emailSnap = await getDocs(emailCheck);
       if (!emailSnap.empty) {
         throw new Error("A user with this email already exists.");
       }
 
-      // Duplicate check: Mobile
       if (formData.mobile) {
         const mobileCheck = query(usersRef, where("mobile", "==", formData.mobile));
         const mobileSnap = await getDocs(mobileCheck);
@@ -199,10 +227,8 @@ export default function UsersManagementPage() {
         }
       }
 
-      // Generate a persistent unique 6-digit Employee ID
       const newEmployeeId = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // 1. Save to Firestore
       await addDoc(collection(db, "users"), {
         employeeId: newEmployeeId,
         name: formData.name,
@@ -216,7 +242,6 @@ export default function UsersManagementPage() {
         createdAt: serverTimestamp(),
       });
 
-      // 2. Sync to Google Sheet if configured
       if (sheetId) {
         syncUserToSheet({
           name: formData.name,
@@ -273,8 +298,6 @@ export default function UsersManagementPage() {
     setIsEditing(true);
     try {
       const usersRef = collection(db, "users");
-      
-      // Email collision check
       const emailCheck = query(usersRef, where("email", "==", formData.email));
       const emailSnap = await getDocs(emailCheck);
       const isEmailDuplicate = emailSnap.docs.some(d => d.id !== editingUser.id);
@@ -282,7 +305,6 @@ export default function UsersManagementPage() {
         throw new Error("Another user already has this email.");
       }
 
-      // Mobile collision check
       if (formData.mobile) {
         const mobileCheck = query(usersRef, where("mobile", "==", formData.mobile));
         const mobileSnap = await getDocs(mobileCheck);
@@ -350,7 +372,17 @@ export default function UsersManagementPage() {
           <p className="text-muted-foreground">Manage employees, default passkeys, and record synchronization.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-primary hover:bg-primary/5"
+            onClick={handleGenerateMissingIds}
+            disabled={isFixingIds || users.length === 0}
+          >
+            {isFixingIds ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
+            Generate Missing IDs
+          </Button>
           <Button 
             variant="outline" 
             size="sm" 
