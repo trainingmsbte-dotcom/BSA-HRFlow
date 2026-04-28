@@ -39,33 +39,39 @@ export default function FinalDeclarationPage() {
     async function fetchData() {
       if (!storedEmail) return;
       try {
-        // Fetch stable user info to get the persistent Employee ID
+        // 1. Fetch stable user info to get the persistent Employee ID
         const userQuery = query(collection(db, "users"), where("email", "==", storedEmail));
         const userSnap = await getDocs(userQuery);
         if (!userSnap.empty) {
           const userData = userSnap.docs[0].data();
           setEmployeeUniqueId(userData.employeeId || "N/A");
+        } else {
+          setEmployeeUniqueId("NOT_FOUND");
         }
 
+        // 2. Fetch all policies
         const pSnap = await getDocs(collection(db, "policies"));
         const pList = pSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setPolicies(pList);
 
+        // 3. Fetch completions for this user
         const cQuery = query(collection(db, "completions"), where("userEmail", "==", storedEmail));
         const cSnap = await getDocs(cQuery);
         const cList = cSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setCompletions(cList);
 
-        // Generate a stable Certificate ID based on the first completion record if available
+        // 4. Generate a stable Certificate ID based on the first completion record or user doc ID
         if (!cSnap.empty) {
           const firstCompId = cSnap.docs[0].id;
-          setCertificateId(`BSA-CERT-IND-${firstCompId.substring(0, 6).toUpperCase()}`);
+          setCertificateId(`BSA-CERT-IND-${firstCompId.substring(0, 8).toUpperCase()}`);
+        } else if (!userSnap.empty) {
+          const userDocId = userSnap.docs[0].id;
+          setCertificateId(`BSA-CERT-IND-${userDocId.substring(0, 8).toUpperCase()}`);
         } else {
-          // Fallback if no completions found (should not happen if 100% complete)
-          setCertificateId(`BSA-CERT-IND-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
+          setCertificateId(`BSA-CERT-IND-TEMP`);
         }
       } catch (e) {
-        console.error(e);
+        console.error("Error fetching declaration data:", e);
       } finally {
         setIsLoading(false);
       }
@@ -201,45 +207,45 @@ export default function FinalDeclarationPage() {
                <img 
                  src="https://bsagroup.in/wp-content/uploads/2025/07/bsa-corp-new-logo-july.png" 
                  alt="BSA Logo" 
-                 className="h-12 w-auto object-contain"
+                 className="h-10 w-auto object-contain"
                />
              </div>
              <div>
-               <h1 className="text-xl font-bold uppercase">Induction Completion Declaration</h1>
-               <p className="text-xs font-semibold">Official HR Onboarding Record</p>
+               <h1 className="text-lg font-bold uppercase">Induction Completion Declaration</h1>
+               <p className="text-[10px] font-semibold">Official HR Onboarding Record</p>
              </div>
           </CardHeader>
           
           <CardContent className="space-y-4 pt-4 px-8 md:px-12">
-             <div className="grid grid-cols-2 gap-2 text-xs">
-               <div className="space-y-1">
-                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Employee Name</span>
+             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
+               <div className="space-y-0.5">
+                 <span className="text-[9px] font-bold uppercase text-muted-foreground">Employee Name</span>
                  <p className="font-bold border-b border-black pb-0.5">{userName}</p>
                </div>
-               <div className="space-y-1 text-right">
-                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Date</span>
+               <div className="space-y-0.5 text-right">
+                 <span className="text-[9px] font-bold uppercase text-muted-foreground">Date</span>
                  <p className="font-bold border-b border-black pb-0.5">{declarationDate}</p>
                </div>
-               <div className="space-y-1">
-                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Email</span>
-                 <p className="border-b border-black pb-0.5">{userEmail}</p>
+               <div className="space-y-0.5">
+                 <span className="text-[9px] font-bold uppercase text-muted-foreground">Email Address</span>
+                 <p className="border-b border-black pb-0.5 text-[10px]">{userEmail}</p>
                </div>
-               <div className="space-y-1 text-right">
-                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Status</span>
-                 <p className="font-bold border-b border-black pb-0.5 uppercase text-xs">COMPLIANT</p>
+               <div className="space-y-0.5 text-right">
+                 <span className="text-[9px] font-bold uppercase text-muted-foreground">Status</span>
+                 <p className="font-bold border-b border-black pb-0.5 uppercase text-[10px]">FULLY COMPLIANT</p>
                </div>
              </div>
 
-             <div className="space-y-2">
-               <h3 className="font-bold text-xs uppercase tracking-tight">Policies Acknowledged</h3>
+             <div className="space-y-1.5">
+               <h3 className="font-bold text-[10px] uppercase tracking-tight">Policies Acknowledged</h3>
                <div className="border border-black">
                   <Table className="w-full">
                     <TableHeader>
-                      <TableRow className="border-b border-black bg-muted/10">
-                        <TableHead className="font-bold text-black text-[10px]">Policy Title</TableHead>
-                        <TableHead className="font-bold text-black text-[10px]">Category</TableHead>
-                        <TableHead className="font-bold text-black text-[10px]">Status</TableHead>
-                        <TableHead className="text-right font-bold text-black text-[10px]">Date Acknowledged</TableHead>
+                      <TableRow className="border-b border-black bg-muted/10 h-7">
+                        <TableHead className="font-bold text-black text-[9px]">Policy Title</TableHead>
+                        <TableHead className="font-bold text-black text-[9px]">Category</TableHead>
+                        <TableHead className="font-bold text-black text-[9px]">Status</TableHead>
+                        <TableHead className="text-right font-bold text-black text-[9px]">Date Acknowledged</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -247,11 +253,11 @@ export default function FinalDeclarationPage() {
                         const comp = completions.find(c => c.policyId === p.id);
                         return (
                           <TableRow key={p.id} className="border-b border-black last:border-0 h-6">
-                            <TableCell className="text-[10px] font-semibold py-1">{p.title}</TableCell>
-                            <TableCell className="text-[10px] py-1">{p.category}</TableCell>
-                            <TableCell className="text-[10px] font-bold py-1 text-green-700">✓ Accepted</TableCell>
-                            <TableCell className="text-right text-[10px] font-mono py-1">
-                              {comp?.completedAt?.toDate()?.toLocaleDateString('en-GB') || "N/A"}
+                            <TableCell className="text-[9px] font-semibold py-1">{p.title}</TableCell>
+                            <TableCell className="text-[9px] py-1">{p.category}</TableCell>
+                            <TableCell className="text-[9px] font-bold py-1 text-green-700">✓ Accepted</TableCell>
+                            <TableCell className="text-right text-[9px] font-mono py-1">
+                              {comp?.completedAt?.toDate()?.toLocaleDateString('en-GB') || declarationDate}
                             </TableCell>
                           </TableRow>
                         );
@@ -262,23 +268,23 @@ export default function FinalDeclarationPage() {
              </div>
 
              <div className="space-y-4">
-                <div className="border border-black p-3 text-xs italic leading-relaxed declaration-text bg-muted/5">
-                   "I, <strong>{userName}</strong>, hereby declare that I have fully read, understood, and accepted the terms and guidelines outlined in all the induction policy documents listed above. I acknowledge that these policies form part of my professional conduct at BSA. I commit to adhering to these standards as required by the organization."
+                <div className="border border-black p-3 text-[10px] italic leading-relaxed declaration-text bg-muted/5">
+                   "I, <strong>{userName}</strong>, hereby declare that I have fully read, understood, and accepted the terms, conditions, and guidelines outlined in all the induction policy documents listed above. I acknowledge that these policies form an integral part of my professional conduct and employment agreement at BSA. I commit to adhering to these standards as required by the organization."
                 </div>
 
-                <div className="grid grid-cols-2 gap-10 items-end pt-4">
+                <div className="grid grid-cols-2 gap-20 items-end pt-4">
                   <div className="space-y-1">
-                     <span className="text-[10px] font-bold uppercase">Authorized Representative</span>
-                     <div className="border-b border-black h-10"></div>
-                     <p className="text-[8px] uppercase mt-1">BSA HR Representative</p>
+                     <span className="text-[9px] font-bold uppercase">Authorized Representative</span>
+                     <div className="border-b border-black h-8"></div>
+                     <p className="text-[7px] uppercase mt-0.5">BSA HR Department</p>
                   </div>
                   
                   <div className="space-y-1">
-                     <span className="text-[10px] font-bold uppercase">Employee Signature</span>
-                     <div className="border-b border-black h-10 flex items-center justify-center">
-                        <span className="text-[10px] text-muted-foreground/30 print:hidden italic">Sign here after printing</span>
+                     <span className="text-[9px] font-bold uppercase">Employee Signature</span>
+                     <div className="border-b border-black h-8 flex items-center justify-center">
+                        <span className="text-[9px] text-muted-foreground/30 print:hidden italic">Sign here after printing</span>
                      </div>
-                     <div className="flex justify-between items-center text-[8px] uppercase mt-1">
+                     <div className="flex justify-between items-center text-[7px] uppercase mt-0.5">
                         <span>{userName}</span>
                         <span className="font-mono bg-muted/10 px-1">ID: {employeeUniqueId}</span>
                      </div>
@@ -287,7 +293,7 @@ export default function FinalDeclarationPage() {
              </div>
           </CardContent>
           
-          <CardFooter className="flex justify-between items-center border-t border-black py-2 px-8 md:px-12 text-[8px] uppercase">
+          <CardFooter className="flex justify-between items-center border-t border-black py-1.5 px-8 md:px-12 text-[7px] uppercase">
              <div>
                 <p className="font-bold tracking-widest">{certificateId}</p>
              </div>
@@ -300,3 +306,4 @@ export default function FinalDeclarationPage() {
     </div>
   );
 }
+
