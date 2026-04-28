@@ -18,6 +18,9 @@ export default function FinalDeclarationPage() {
   const [completions, setCompletions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [declarationDate, setDeclarationDate] = useState("");
+  const [employeeUniqueId, setEmployeeUniqueId] = useState("");
+  const [certificateId, setCertificateId] = useState("");
+  
   const router = useRouter();
 
   useEffect(() => {
@@ -31,6 +34,13 @@ export default function FinalDeclarationPage() {
       month: '2-digit',
       year: 'numeric'
     }));
+
+    // Generate stable unique IDs for the session to avoid hydration errors
+    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const numericId = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    setEmployeeUniqueId(numericId);
+    setCertificateId(`BSA-CERT-IND-${randomSuffix}`);
 
     async function fetchData() {
       if (!storedEmail) return;
@@ -192,19 +202,19 @@ export default function FinalDeclarationPage() {
           <CardContent className="space-y-4 pt-4 px-8 md:px-12">
              <div className="grid grid-cols-2 gap-2 text-xs">
                <div className="space-y-1">
-                 <span className="text-[10px] font-bold uppercase">Employee Name</span>
+                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Employee Name</span>
                  <p className="font-bold border-b border-black pb-0.5">{userName}</p>
                </div>
                <div className="space-y-1 text-right">
-                 <span className="text-[10px] font-bold uppercase">Date</span>
+                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Date</span>
                  <p className="font-bold border-b border-black pb-0.5">{declarationDate}</p>
                </div>
                <div className="space-y-1">
-                 <span className="text-[10px] font-bold uppercase">Email</span>
+                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Email</span>
                  <p className="border-b border-black pb-0.5">{userEmail}</p>
                </div>
                <div className="space-y-1 text-right">
-                 <span className="text-[10px] font-bold uppercase">Status</span>
+                 <span className="text-[10px] font-bold uppercase text-muted-foreground">Status</span>
                  <p className="font-bold border-b border-black pb-0.5 uppercase text-xs">COMPLIANT</p>
                </div>
              </div>
@@ -228,7 +238,7 @@ export default function FinalDeclarationPage() {
                           <TableRow key={p.id} className="border-b border-black last:border-0 h-6">
                             <TableCell className="text-[10px] font-semibold py-1">{p.title}</TableCell>
                             <TableCell className="text-[10px] py-1">{p.category}</TableCell>
-                            <TableCell className="text-[10px] font-bold py-1">✓ Accepted</TableCell>
+                            <TableCell className="text-[10px] font-bold py-1 text-green-700">✓ Accepted</TableCell>
                             <TableCell className="text-right text-[10px] font-mono py-1">
                               {comp?.completedAt?.toDate()?.toLocaleDateString('en-GB') || "N/A"}
                             </TableCell>
@@ -241,7 +251,7 @@ export default function FinalDeclarationPage() {
              </div>
 
              <div className="space-y-4">
-                <div className="border border-black p-3 text-xs italic leading-relaxed declaration-text">
+                <div className="border border-black p-3 text-xs italic leading-relaxed declaration-text bg-muted/5">
                    "I, <strong>{userName}</strong>, hereby declare that I have fully read, understood, and accepted the terms and guidelines outlined in all the induction policy documents listed above. I acknowledge that these policies form part of my professional conduct at BSA. I commit to adhering to these standards as required by the organization."
                 </div>
 
@@ -259,7 +269,7 @@ export default function FinalDeclarationPage() {
                      </div>
                      <div className="flex justify-between items-center text-[8px] uppercase mt-1">
                         <span>{userName}</span>
-                        <span className="font-mono">ID: {Date.now().toString().slice(-6)}</span>
+                        <span className="font-mono bg-muted/10 px-1">ID: {employeeUniqueId}</span>
                      </div>
                   </div>
                 </div>
@@ -268,10 +278,10 @@ export default function FinalDeclarationPage() {
           
           <CardFooter className="flex justify-between items-center border-t border-black py-2 px-8 md:px-12 text-[8px] uppercase">
              <div>
-                <p className="font-bold">BSA-CERT-IND-{Math.random().toString(36).substring(7).toUpperCase()}</p>
+                <p className="font-bold tracking-widest">{certificateId}</p>
              </div>
              <div className="text-right">
-                <p>© 2024 BSA HRFLOW | INTERNAL RECORD</p>
+                <p>© 2024 BSA HRFLOW | INTERNAL COMPLIANCE RECORD</p>
              </div>
           </CardFooter>
         </Card>
