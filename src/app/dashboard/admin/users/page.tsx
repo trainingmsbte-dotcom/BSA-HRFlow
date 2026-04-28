@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon, Hash } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -35,6 +35,7 @@ import { syncUserToSheet } from "@/ai/flows/admin-sync-user-sheet";
 
 interface UserRecord {
   id: string;
+  employeeId: string;
   name: string;
   email: string;
   mobile: string;
@@ -69,7 +70,6 @@ export default function UsersManagementPage() {
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
 
   useEffect(() => {
-    // Load sheet ID from localStorage if exists
     const savedSheetId = localStorage.getItem('google_sheet_id');
     if (savedSheetId) setSheetId(savedSheetId);
 
@@ -114,8 +114,12 @@ export default function UsersManagementPage() {
 
     setIsAdding(true);
     try {
+      // Generate a persistent unique 6-digit Employee ID
+      const newEmployeeId = Math.floor(100000 + Math.random() * 900000).toString();
+
       // 1. Save to Firestore
       await addDoc(collection(db, "users"), {
+        employeeId: newEmployeeId,
         name: formData.name,
         email: formData.email,
         mobile: formData.mobile,
@@ -149,7 +153,7 @@ export default function UsersManagementPage() {
 
       toast({
         title: "User Added",
-        description: `${formData.name} has been added and recorded.`,
+        description: `${formData.name} (ID: ${newEmployeeId}) has been added and recorded.`,
       });
       setAddOpen(false);
       setFormData({ name: "", email: "", mobile: "", role: "Employee", department: "Engineering", passkey: "" });
@@ -229,7 +233,7 @@ export default function UsersManagementPage() {
   const filteredUsers = users.filter(u => 
     u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.employeeId?.includes(searchTerm) ||
     u.department?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -262,7 +266,7 @@ export default function UsersManagementPage() {
               <DialogHeader>
                 <DialogTitle>Add New Employee</DialogTitle>
                 <DialogDescription>
-                  Create a new record. Data will automatically sync to your shared Google Sheet.
+                  Create a new record. A unique Employee ID will be generated automatically.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddUser} className="grid gap-4 py-4">
@@ -449,7 +453,7 @@ export default function UsersManagementPage() {
             <div className="relative w-full max-w-sm">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input 
-                placeholder="Search users..." 
+                placeholder="Search users or ID..." 
                 className="pl-9 bg-background" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -467,6 +471,7 @@ export default function UsersManagementPage() {
               <TableHeader className="bg-muted/5">
                 <TableRow>
                   <TableHead className="pl-6">User</TableHead>
+                  <TableHead>Employee ID</TableHead>
                   <TableHead>Contact Information</TableHead>
                   <TableHead>Role & Dept</TableHead>
                   <TableHead>Status</TableHead>
@@ -491,6 +496,12 @@ export default function UsersManagementPage() {
                             </span>
                           </div>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                         <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-muted-foreground">
+                            <Hash className="h-3 w-3" />
+                            {user.employeeId || "Not Set"}
+                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
@@ -563,7 +574,7 @@ export default function UsersManagementPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic">
+                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
                       No users found in Firestore.
                     </TableCell>
                   </TableRow>

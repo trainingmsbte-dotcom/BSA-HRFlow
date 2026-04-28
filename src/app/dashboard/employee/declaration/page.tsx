@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -35,24 +36,34 @@ export default function FinalDeclarationPage() {
       year: 'numeric'
     }));
 
-    // Generate stable unique IDs for the session to avoid hydration errors
-    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const numericId = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    setEmployeeUniqueId(numericId);
-    setCertificateId(`BSA-CERT-IND-${randomSuffix}`);
-
     async function fetchData() {
       if (!storedEmail) return;
       try {
+        // Fetch stable user info to get the persistent Employee ID
+        const userQuery = query(collection(db, "users"), where("email", "==", storedEmail));
+        const userSnap = await getDocs(userQuery);
+        if (!userSnap.empty) {
+          const userData = userSnap.docs[0].data();
+          setEmployeeUniqueId(userData.employeeId || "N/A");
+        }
+
         const pSnap = await getDocs(collection(db, "policies"));
         const pList = pSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setPolicies(pList);
 
         const cQuery = query(collection(db, "completions"), where("userEmail", "==", storedEmail));
         const cSnap = await getDocs(cQuery);
-        const cList = cSnap.docs.map(doc => doc.data());
+        const cList = cSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setCompletions(cList);
+
+        // Generate a stable Certificate ID based on the first completion record if available
+        if (!cSnap.empty) {
+          const firstCompId = cSnap.docs[0].id;
+          setCertificateId(`BSA-CERT-IND-${firstCompId.substring(0, 6).toUpperCase()}`);
+        } else {
+          // Fallback if no completions found (should not happen if 100% complete)
+          setCertificateId(`BSA-CERT-IND-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
+        }
       } catch (e) {
         console.error(e);
       } finally {

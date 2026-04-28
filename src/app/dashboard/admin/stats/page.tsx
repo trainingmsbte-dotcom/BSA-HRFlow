@@ -19,7 +19,7 @@ import {
   Cell
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { TrendingUp, Users, FileCheck, Clock, Loader2 } from "lucide-react";
+import { TrendingUp, Users, FileCheck, Clock, Loader2, Hash, FileText } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 
@@ -43,11 +43,10 @@ export default function ComplianceStatsPage() {
       const unsubUsers = onSnapshot(collection(db, "users"), (userSnap) => {
         const users = userSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
         
-        const unsubCompletions = onSnapshot(query(collection(db, "completions"), orderBy("completedAt", "desc"), limit(10)), (compSnap) => {
-          const completions = compSnap.docs.map(doc => doc.data());
+        const unsubCompletions = onSnapshot(query(collection(db, "completions"), orderBy("completedAt", "desc"), limit(15)), (compSnap) => {
+          const completions = compSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
           // 1. Completion by Policy (Bar Chart)
-          // We still use the completions collection for this specific granularity
           onSnapshot(collection(db, "completions"), (allCompSnap) => {
             const allComps = allCompSnap.docs.map(doc => doc.data());
             const statsByPolicy = policies.map((p: any) => {
@@ -60,7 +59,6 @@ export default function ComplianceStatsPage() {
             });
             setPolicyStats(statsByPolicy);
 
-            // 2. Summary Stats
             const avgProgress = statsByPolicy.length > 0 ? Math.round(statsByPolicy.reduce((acc, curr) => acc + curr.completed, 0) / statsByPolicy.length) : 0;
             setOverallStats({
               avgProgress,
@@ -69,11 +67,15 @@ export default function ComplianceStatsPage() {
             });
           });
 
-          // 2. Recent Interaction Feed (Table)
+          // 2. Recent Interaction Feed (Table) - Now includes Tracking IDs
           const recentProgress = completions.map((comp: any) => {
             const user = users.find((u: any) => u.email === comp.userEmail);
+            // Mocking a Certificate ID based on the completion doc ID for demo tracking
+            const certId = `BSA-CERT-IND-${comp.id.substring(0, 6).toUpperCase()}`;
             return {
               user: user?.name || comp.userEmail,
+              employeeId: user?.employeeId || "N/A",
+              certId: certId,
               policy: comp.policyTitle || "Unknown Policy",
               status: "Acknowledged",
               timestamp: comp.completedAt?.toDate().toLocaleString() || "N/A"
@@ -82,7 +84,6 @@ export default function ComplianceStatsPage() {
           setUserProgress(recentProgress);
 
           // 3. Overall Compliance (Pie Chart)
-          // Use user record data for this
           let completedUsers = 0;
           let inProgressUsers = 0;
           let notStartedUsers = 0;
@@ -124,8 +125,8 @@ export default function ComplianceStatsPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Compliance Analytics</h1>
-          <p className="text-muted-foreground">Detailed insights into policy engagement and overall team compliance.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">ID & Certificate Tracker</h1>
+          <p className="text-muted-foreground">Track unique employee identifiers and induction completion certificates.</p>
         </div>
       </div>
 
@@ -162,75 +163,19 @@ export default function ComplianceStatsPage() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-7">
-         <Card className="md:col-span-4 border-none shadow-sm">
-            <CardHeader>
-              <CardTitle>Completion Rate by Policy</CardTitle>
-              <CardDescription>Percentage of the workforce that has acknowledged each specific policy.</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[350px]">
-              <ChartContainer config={{ 
-                completed: { label: "Completed %", color: "hsl(var(--primary))" }
-              }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={policyStats} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}%`} />
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="completed" fill="var(--color-completed)" radius={[4, 4, 0, 0]} barSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-         </Card>
-
-         <Card className="md:col-span-3 border-none shadow-sm">
-            <CardHeader>
-              <CardTitle>Induction Status</CardTitle>
-              <CardDescription>Distribution of employees across completion tiers.</CardDescription>
-            </CardHeader>
-            <CardContent className="h-[350px] flex flex-col items-center justify-center">
-               <ResponsiveContainer width="100%" height="80%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      innerRadius={70}
-                      outerRadius={100}
-                      paddingAngle={8}
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-               </ResponsiveContainer>
-               <div className="grid grid-cols-3 gap-4 w-full mt-4 text-center">
-                  {pieData.map((item, idx) => (
-                    <div key={idx}>
-                      <div className="text-sm font-bold" style={{ color: COLORS[idx] }}>{item.value}</div>
-                      <div className="text-[10px] uppercase text-muted-foreground font-semibold">{item.name}</div>
-                    </div>
-                  ))}
-               </div>
-            </CardContent>
-         </Card>
-      </div>
-
       <Card className="border-none shadow-sm overflow-hidden">
         <CardHeader className="bg-muted/10 border-b">
-          <CardTitle>Live Activity Feed</CardTitle>
-          <CardDescription>Latest individual policy read confirmations recorded in the system.</CardDescription>
+          <CardTitle>Induction Declaration Log</CardTitle>
+          <CardDescription>Monitor unique IDs and certificates for official candidate declaration tracking.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/5">
               <TableRow>
                 <TableHead className="pl-6">Employee</TableHead>
+                <TableHead>Employee ID</TableHead>
+                <TableHead>Certificate ID</TableHead>
                 <TableHead>Policy Module</TableHead>
-                <TableHead>Event</TableHead>
                 <TableHead className="text-right pr-6">Timestamp</TableHead>
               </TableRow>
             </TableHeader>
@@ -239,20 +184,27 @@ export default function ComplianceStatsPage() {
                 userProgress.map((row, idx) => (
                   <TableRow key={idx} className="hover:bg-muted/5 transition-colors">
                     <TableCell className="font-semibold pl-6">{row.user}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{row.policy}</TableCell>
                     <TableCell>
-                      <Badge className="bg-green-600">
-                        {row.status}
-                      </Badge>
+                       <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-muted-foreground bg-muted/30 px-2 py-0.5 rounded w-fit">
+                          <Hash className="h-3 w-3" />
+                          {row.employeeId}
+                       </div>
                     </TableCell>
-                    <TableCell className="text-right pr-6 text-sm font-mono text-muted-foreground">
+                    <TableCell>
+                       <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded border border-primary/10 w-fit">
+                          <FileText className="h-3 w-3" />
+                          {row.certId}
+                       </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{row.policy}</TableCell>
+                    <TableCell className="text-right pr-6 text-[10px] font-mono text-muted-foreground">
                       {row.timestamp}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-10 text-muted-foreground italic">
+                  <TableCell colSpan={5} className="text-center py-10 text-muted-foreground italic">
                     Waiting for activity...
                   </TableCell>
                 </TableRow>
