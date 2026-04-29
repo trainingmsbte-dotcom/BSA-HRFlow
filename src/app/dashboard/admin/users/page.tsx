@@ -45,6 +45,7 @@ interface UserRecord {
   passkey?: string;
   requiresChange?: boolean;
   createdAt?: any;
+  createdByEmail?: string;
 }
 
 export default function UsersManagementPage() {
@@ -60,7 +61,6 @@ export default function UsersManagementPage() {
   const [sheetId, setSheetId] = useState("");
   const { toast } = useToast();
 
-  // Form State
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -147,25 +147,23 @@ export default function UsersManagementPage() {
       let deleteCount = 0;
       const idsToDelete = new Set<string>();
 
-      // Check Email Duplicates
       emailGroups.forEach((group) => {
         if (group.length > 1) {
           const sorted = [...group].sort((a, b) => {
             const timeA = a.createdAt?.seconds || 0;
             const timeB = b.createdAt?.seconds || 0;
-            return timeB - timeA; // Latest first
+            return timeB - timeA;
           });
           sorted.slice(1).forEach(u => idsToDelete.add(u.id));
         }
       });
 
-      // Check Mobile Duplicates
       mobileGroups.forEach((group) => {
         if (group.length > 1) {
           const sorted = [...group].sort((a, b) => {
             const timeA = a.createdAt?.seconds || 0;
             const timeB = b.createdAt?.seconds || 0;
-            return timeB - timeA; // Latest first
+            return timeB - timeA;
           });
           sorted.slice(1).forEach(u => idsToDelete.add(u.id));
         }
@@ -211,6 +209,7 @@ export default function UsersManagementPage() {
 
     setIsAdding(true);
     try {
+      const creatorEmail = localStorage.getItem('userEmail') || "System";
       const usersRef = collection(db, "users");
       
       const emailCheck = query(usersRef, where("email", "==", formData.email));
@@ -240,6 +239,7 @@ export default function UsersManagementPage() {
         requiresChange: true,
         status: "Active",
         createdAt: serverTimestamp(),
+        createdByEmail: creatorEmail,
       });
 
       if (sheetId) {
@@ -341,7 +341,26 @@ export default function UsersManagementPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
+  const handleDeleteUser = async (userId: string, userName: string, targetRole: string, targetEmail: string) => {
+    const currentUserEmail = localStorage.getItem('userEmail');
+    const currentUserRecord = users.find(u => u.email === currentUserEmail);
+
+    if (currentUserEmail === targetEmail) {
+      return toast({
+        variant: "destructive",
+        title: "Action Restricted",
+        description: "You cannot delete your own account.",
+      });
+    }
+
+    if (targetRole === 'Admin' && currentUserRecord?.createdByEmail === targetEmail) {
+      return toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "Security Protection: You cannot delete your parent admin account.",
+      });
+    }
+
     try {
       await deleteDoc(doc(db, "users", userId));
       toast({
@@ -709,7 +728,7 @@ export default function UsersManagementPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteUser(user.id, user.name)}
+                                onClick={() => handleDeleteUser(user.id, user.name, user.role, user.email)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete from Firestore
                               </DropdownMenuItem>
