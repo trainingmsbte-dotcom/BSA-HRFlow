@@ -32,6 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { syncUserToSheet } from "@/ai/flows/admin-sync-user-sheet";
+import { sendWelcomeEmail } from "@/ai/flows/admin-send-welcome-email";
 
 interface UserRecord {
   id: string;
@@ -96,6 +97,34 @@ export default function UsersManagementPage() {
 
     return () => unsubscribe();
   }, [toast]);
+
+  const handleSendWelcomeMail = async (user: UserRecord) => {
+    try {
+      const loginLink = window.location.origin + "/login";
+      const result = await sendWelcomeEmail({
+        email: user.email,
+        name: user.name,
+        employeeId: user.employeeId || "Not Set",
+        passkey: user.passkey || "TemporaryPassword123",
+        loginLink: loginLink
+      });
+      
+      if (result.success) {
+        toast({
+          title: "Welcome Mail Sent",
+          description: `Credentials and portal link sent to ${user.email}. (Simulated)`,
+        });
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Mail Failed",
+        description: error.message,
+      });
+    }
+  };
 
   const handleGenerateMissingIds = async () => {
     const usersWithoutId = users.filter(u => !u.employeeId || u.employeeId === "Not Set");
@@ -722,7 +751,7 @@ export default function UsersManagementPage() {
                               <DropdownMenuItem onClick={() => handleEditClick(user)}>
                                 <Edit2 className="mr-2 h-4 w-4" /> Edit Profile
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleSendWelcomeMail(user)}>
                                 <Mail className="mr-2 h-4 w-4" /> Send Welcome Mail
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
