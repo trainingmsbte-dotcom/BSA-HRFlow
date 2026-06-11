@@ -11,9 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Save, FileText, ChevronLeft, Loader2, ExternalLink, FileType, Plus } from "lucide-react";
-import { adminPolicySummarization } from "@/ai/flows/admin-policy-summarization";
-import { generateQuizQuestions } from "@/ai/flows/admin-quiz-question-generation";
+import { Save, FileText, ChevronLeft, Loader2, ExternalLink, FileType, Plus } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
@@ -30,8 +28,6 @@ function PolicyEditor() {
   const [pdfUrl, setPdfUrl] = useState("");
   const [isMandatory, setIsMandatory] = useState(true);
   const [summary, setSummary] = useState("");
-  const [isSummarizing, setIsSummarizing] = useState(false);
-  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,34 +59,6 @@ function PolicyEditor() {
       toast({ title: "Load Error", description: error.message, variant: "destructive" });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleSummarize = async () => {
-    if (!pdfUrl) return toast({ title: "Error", description: "Please add a PDF URL first.", variant: "destructive" });
-    setIsSummarizing(true);
-    try {
-      const result = await adminPolicySummarization({ policyContent: `Analyzing PDF at: ${pdfUrl}` });
-      setSummary(result.summary);
-      toast({ title: "Summary Generated", description: "AI has successfully summarized the linked PDF." });
-    } catch (error) {
-      toast({ title: "AI Error", description: "Failed to generate summary.", variant: "destructive" });
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
-
-  const handleGenerateQuiz = async () => {
-    if (!pdfUrl) return toast({ title: "Error", description: "Please add a PDF URL first.", variant: "destructive" });
-    setIsGeneratingQuiz(true);
-    try {
-      const result = await generateQuizQuestions({ policyContent: `Generating quiz for PDF at: ${pdfUrl}`, numberOfQuestions: 3 });
-      setQuizQuestions(result.questions);
-      toast({ title: "Quiz Generated", description: "3 AI-powered questions added to policy." });
-    } catch (error) {
-      toast({ title: "AI Error", description: "Failed to generate quiz questions.", variant: "destructive" });
-    } finally {
-      setIsGeneratingQuiz(false);
     }
   };
 
@@ -240,14 +208,12 @@ function PolicyEditor() {
           </Card>
 
           {summary && (
-            <Card className="border-none shadow-sm bg-accent/5">
+            <Card className="border-none shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-accent" /> AI Summary
-                </CardTitle>
+                <CardTitle>Policy Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed">{summary}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
               </CardContent>
             </Card>
           )}
@@ -255,7 +221,7 @@ function PolicyEditor() {
           {quizQuestions.length > 0 && (
             <Card className="border-none shadow-sm">
               <CardHeader>
-                <CardTitle>Generated Quiz Questions</CardTitle>
+                <CardTitle>Quiz Questions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {quizQuestions.map((q, idx) => (
@@ -294,29 +260,9 @@ function PolicyEditor() {
 
           <Card className="border-none shadow-sm">
             <CardHeader>
-              <CardTitle>AI Tools</CardTitle>
-              <CardDescription>Enhance policy accessibility with AI.</CardDescription>
+              <CardTitle>Actions</CardTitle>
+              <CardDescription>Finalize and publish your changes.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start" 
-                onClick={handleSummarize} 
-                disabled={isSummarizing || !pdfUrl}
-              >
-                {isSummarizing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4 text-accent" />}
-                Generate AI Summary
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start" 
-                onClick={handleGenerateQuiz}
-                disabled={isGeneratingQuiz || !pdfUrl}
-              >
-                {isGeneratingQuiz ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4 text-accent" />}
-                Generate Quiz Questions
-              </Button>
-            </CardContent>
             <CardFooter>
               <Button className="w-full" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
