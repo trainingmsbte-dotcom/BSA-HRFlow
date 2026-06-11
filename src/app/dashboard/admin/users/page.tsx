@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Shield, Trash2, Edit2, Loader2, Phone, Key, Hash, Sparkles, Wand2, Building2, Plus, FileText } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Shield, Trash2, Edit2, Loader2, Phone, Key, Hash, Sparkles, Wand2, Building2, Plus, FileText, Eye } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -185,9 +185,17 @@ export default function UsersManagementPage() {
     try {
       const creatorEmail = localStorage.getItem('userEmail') || "System";
       const usersRef = collection(db, "users");
+      
       const emailCheck = query(usersRef, where("email", "==", formData.email));
       const emailSnap = await getDocs(emailCheck);
       if (!emailSnap.empty) throw new Error("Email already exists.");
+
+      if (formData.mobile) {
+        const mobileCheck = query(usersRef, where("mobile", "==", formData.mobile));
+        const mobileSnap = await getDocs(mobileCheck);
+        if (!mobileSnap.empty) throw new Error("Mobile number already exists.");
+      }
+
       const newEmployeeId = Math.floor(100000 + Math.random() * 900000).toString();
       await addDoc(collection(db, "users"), {
         employeeId: newEmployeeId,
@@ -231,6 +239,22 @@ export default function UsersManagementPage() {
     if (!editingUser) return;
     setIsEditing(true);
     try {
+      const usersRef = collection(db, "users");
+      
+      const emailCheck = query(usersRef, where("email", "==", formData.email));
+      const emailSnap = await getDocs(emailCheck);
+      if (!emailSnap.empty && emailSnap.docs[0].id !== editingUser.id) {
+        throw new Error("Email is already used by another employee.");
+      }
+
+      if (formData.mobile) {
+        const mobileCheck = query(usersRef, where("mobile", "==", formData.mobile));
+        const mobileSnap = await getDocs(mobileCheck);
+        if (!mobileSnap.empty && mobileSnap.docs[0].id !== editingUser.id) {
+          throw new Error("Mobile number is already used by another employee.");
+        }
+      }
+
       await updateDoc(doc(db, "users", editingUser.id), {
         name: formData.name,
         email: formData.email,
@@ -353,16 +377,23 @@ export default function UsersManagementPage() {
                     <TableCell><Badge variant="outline" className="text-[10px]">{user.department}</Badge></TableCell>
                     <TableCell><Badge variant={user.status === "Active" ? "default" : "secondary"}>{user.status}</Badge></TableCell>
                     <TableCell className="text-right pr-6">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditClick(user)}><Edit2 className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
-                          <DropdownMenuItem asChild><Link href={`/dashboard/employee/declaration?email=${user.email}`}><FileText className="mr-2 h-4 w-4" /> View Declaration</Link></DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user.id, user.name, user.role, user.email)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                          <Link href={`/dashboard/employee/declaration?email=${user.email}`} title="View Declaration">
+                            <Eye className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+                          </Link>
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditClick(user)}><Edit2 className="mr-2 h-4 w-4" /> Edit Record</DropdownMenuItem>
+                            <DropdownMenuItem asChild><Link href={`/dashboard/employee/declaration?email=${user.email}`}><FileText className="mr-2 h-4 w-4" /> View Declaration</Link></DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user.id, user.name, user.role, user.email)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
