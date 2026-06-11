@@ -27,7 +27,6 @@ function DeclarationContent() {
   const router = useRouter();
 
   useEffect(() => {
-    const storedName = localStorage.getItem('userName');
     const storedEmail = localStorage.getItem('userEmail');
     
     // Determine which user we are viewing
@@ -90,6 +89,10 @@ function DeclarationContent() {
       window.print();
     }
   };
+
+  // Only show policies that have actually been completed
+  const completedPolicies = policies.filter(p => completions.some(c => c.policyId === p.id));
+  const isFullyCompliant = policies.length > 0 && completedPolicies.length === policies.length;
 
   if (isLoading) {
     return (
@@ -165,7 +168,9 @@ function DeclarationContent() {
                </div>
                <div className="space-y-0.5 text-right">
                  <span className="text-[9px] font-bold uppercase text-muted-foreground">Status</span>
-                 <p className="font-bold border-b border-black pb-0.5 uppercase text-[10px]">FULLY COMPLIANT</p>
+                 <p className={`font-bold border-b border-black pb-0.5 uppercase text-[10px] ${isFullyCompliant ? 'text-green-700' : 'text-amber-700'}`}>
+                   {isFullyCompliant ? 'FULLY COMPLIANT' : 'PARTIALLY COMPLIANT'}
+                 </p>
                </div>
              </div>
 
@@ -182,19 +187,27 @@ function DeclarationContent() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {policies.map(p => {
-                        const comp = completions.find(c => c.policyId === p.id);
-                        return (
-                          <TableRow key={p.id} className="border-b border-black last:border-0 h-6">
-                            <TableCell className="text-[9px] font-semibold py-1">{p.title}</TableCell>
-                            <TableCell className="text-[9px] py-1">{p.category}</TableCell>
-                            <TableCell className="text-[9px] font-bold py-1 text-green-700">✓ Accepted</TableCell>
-                            <TableCell className="text-right text-[9px] font-mono py-1">
-                              {comp?.completedAt?.toDate()?.toLocaleDateString('en-GB') || declarationDate}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                      {completedPolicies.length > 0 ? (
+                        completedPolicies.map(p => {
+                          const comp = completions.find(c => c.policyId === p.id);
+                          return (
+                            <TableRow key={p.id} className="border-b border-black last:border-0 h-6">
+                              <TableCell className="text-[9px] font-semibold py-1">{p.title}</TableCell>
+                              <TableCell className="text-[9px] py-1">{p.category}</TableCell>
+                              <TableCell className="text-[9px] font-bold py-1 text-green-700">✓ Accepted</TableCell>
+                              <TableCell className="text-right text-[9px] font-mono py-1">
+                                {comp?.completedAt?.toDate()?.toLocaleDateString('en-GB') || declarationDate}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      ) : (
+                        <TableRow className="border-b border-black last:border-0 h-6">
+                          <TableCell colSpan={4} className="text-center text-[9px] py-4 text-muted-foreground italic">
+                            No policies have been acknowledged yet.
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                </div>
