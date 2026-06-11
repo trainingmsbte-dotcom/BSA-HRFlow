@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Hash, Sparkles, Wand2, Building2, Plus, FileText } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Shield, Trash2, Edit2, Loader2, Phone, Key, Hash, Sparkles, Wand2, Building2, Plus, FileText } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -33,7 +33,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { syncUserToSheet } from "@/ai/flows/admin-sync-user-sheet";
-import { sendWelcomeEmail } from "@/ai/flows/admin-send-welcome-email";
 
 interface UserRecord {
   id: string;
@@ -130,24 +129,6 @@ export default function UsersManagementPage() {
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } finally { setIsAddingDept(false); }
-  };
-
-  const handleSendWelcomeMail = async (user: UserRecord) => {
-    try {
-      const loginLink = window.location.origin + "/login";
-      const result = await sendWelcomeEmail({
-        email: user.email,
-        name: user.name,
-        employeeId: user.employeeId || "Not Set",
-        passkey: user.passkey || "TemporaryPassword123",
-        loginLink: loginLink
-      });
-      if (result.success) {
-        toast({ title: "Welcome Mail Sent", description: `Credentials sent to ${user.email}.` });
-      } else { throw new Error(result.message); }
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Mail Failed", description: error.message });
-    }
   };
 
   const handleGenerateMissingIds = async () => {
@@ -378,7 +359,6 @@ export default function UsersManagementPage() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => handleEditClick(user)}><Edit2 className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
                           <DropdownMenuItem asChild><Link href={`/dashboard/employee/declaration?email=${user.email}`}><FileText className="mr-2 h-4 w-4" /> View Declaration</Link></DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleSendWelcomeMail(user)}><Mail className="mr-2 h-4 w-4" /> Welcome Mail</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user.id, user.name, user.role, user.email)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
                         </DropdownMenuContent>
