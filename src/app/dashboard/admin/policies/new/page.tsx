@@ -1,7 +1,8 @@
+
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,9 +15,14 @@ import { Sparkles, Save, FileText, ChevronLeft, Loader2, ExternalLink, FileType,
 import { adminPolicySummarization } from "@/ai/flows/admin-policy-summarization";
 import { generateQuizQuestions } from "@/ai/flows/admin-quiz-question-generation";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
-export default function NewPolicyPage() {
+function PolicyEditor() {
+  const searchParams = useSearchParams();
+  const policyId = searchParams.get("id");
+  const router = useRouter();
+  const { toast } = useToast();
+
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
@@ -28,9 +34,37 @@ export default function NewPolicyPage() {
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const router = useRouter();
-  const { toast } = useToast();
+  useEffect(() => {
+    if (policyId) {
+      loadPolicy(policyId);
+    }
+  }, [policyId]);
+
+  const loadPolicy = async (id: string) => {
+    setIsLoading(true);
+    try {
+      const docRef = doc(db, "policies", id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setTitle(data.title || "");
+        setCategory(data.category || "");
+        setPdfUrl(data.pdfUrl || "");
+        setIsMandatory(data.isMandatory ?? true);
+        setSummary(data.summary || "");
+        setQuizQuestions(data.quizQuestions || []);
+      } else {
+        toast({ title: "Not Found", description: "Policy document not found.", variant: "destructive" });
+        router.push("/dashboard/admin/policies");
+      }
+    } catch (error: any) {
+      toast({ title: "Load Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSummarize = async () => {
     if (!pdfUrl) return toast({ title: "Error", description: "Please add a PDF URL first.", variant: "destructive" });
@@ -69,21 +103,30 @@ export default function NewPolicyPage() {
 
     setIsSaving(true);
     try {
-      await addDoc(collection(db, "policies"), {
+      const policyData = {
         title,
         category: finalCategory,
         pdfUrl,
         isMandatory,
         summary,
         quizQuestions,
-        completionRate: 0,
         lastUpdated: serverTimestamp(),
-        createdAt: serverTimestamp(),
         description: summary || `Compliance document for ${finalCategory}`,
         version: "1.0.0"
-      });
+      };
 
-      toast({ title: "Success", description: "Policy saved and published to Firestore." });
+      if (policyId) {
+        await updateDoc(doc(db, "policies", policyId), policyData);
+        toast({ title: "Policy Updated", description: "Changes saved and published." });
+      } else {
+        await addDoc(collection(db, "policies"), {
+          ...policyData,
+          completionRate: 0,
+          createdAt: serverTimestamp(),
+        });
+        toast({ title: "Success", description: "Policy saved and published to Firestore." });
+      }
+
       router.push("/dashboard/admin/policies");
     } catch (error: any) {
       toast({ title: "Save Failed", description: error.message, variant: "destructive" });
@@ -102,11 +145,19 @@ export default function NewPolicyPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="h-96 flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}><ChevronLeft className="h-5 w-5" /></Button>
-        <h1 className="text-3xl font-bold tracking-tight">Create New Policy</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{policyId ? "Edit Policy" : "Create New Policy"}</h1>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -125,7 +176,7 @@ export default function NewPolicyPage() {
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
                   <div className="space-y-2">
-                    <Select onValueChange={onCategoryChange}>
+                    <Select value={isCustomCategory ? "custom" : category} onValueChange={onCategoryChange}>
                       <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="IT Security">IT & Security</SelectItem>
@@ -269,12 +320,20 @@ export default function NewPolicyPage() {
             <CardFooter>
               <Button className="w-full" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Save & Publish
+                {policyId ? "Save Changes" : "Save & Publish"}
               </Button>
             </CardFooter>
           </Card>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewPolicyPage() {
+  return (
+    <Suspense fallback={<div className="h-96 flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}>
+      <PolicyEditor />
+    </Suspense>
   );
 }

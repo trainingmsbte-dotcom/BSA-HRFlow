@@ -97,7 +97,7 @@ export default function AdminPoliciesPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Policy Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">Policy Management</h1>
           <p className="text-muted-foreground">Create, edit, and track company policy documents in real-time.</p>
         </div>
         <Button asChild className="shadow-sm">
@@ -169,7 +169,7 @@ export default function AdminPoliciesPage() {
                       <TableCell className="text-right pr-6">
                         <div className="flex justify-end gap-2">
                           <Button variant="ghost" size="icon" asChild className="h-8 w-8">
-                            <Link href={`/dashboard/admin/policies/new`}>
+                            <Link href={`/dashboard/admin/policies/new?id=${policy.id}`}>
                               <Edit className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                             </Link>
                           </Button>
@@ -181,7 +181,7 @@ export default function AdminPoliciesPage() {
                               <DropdownMenuLabel>Options</DropdownMenuLabel>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem asChild>
-                                <Link href={`/dashboard/admin/policies/new`} className="cursor-pointer">
+                                <Link href={`/dashboard/admin/policies/new?id=${policy.id}`} className="cursor-pointer">
                                   <Edit className="mr-2 h-4 w-4" /> Edit Content
                                 </Link>
                               </DropdownMenuItem>
