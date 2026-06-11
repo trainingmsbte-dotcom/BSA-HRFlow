@@ -116,9 +116,9 @@ export default function ComplianceStatsPage() {
                   <TableCell><div className="font-mono text-[10px] text-primary flex items-center gap-1"><FileText className="h-3 w-3" />{row.certId}</div></TableCell>
                   <TableCell className="text-xs text-muted-foreground">{row.policy}</TableCell>
                   <TableCell className="text-right pr-6">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/dashboard/employee/declaration?email=${row.userEmail}`}>
-                        <Eye className="h-4 w-4 mr-1" /> View
+                    <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                      <Link href={`/dashboard/employee/declaration?email=${row.userEmail}`} title="View Declaration">
+                        <Eye className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                       </Link>
                     </Button>
                   </TableCell>

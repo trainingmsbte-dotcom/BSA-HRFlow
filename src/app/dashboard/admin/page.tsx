@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, FileCheck, AlertCircle, TrendingUp, MoreVertical, Edit, Mail, BarChart2, Loader2 } from "lucide-react";
+import { Users, FileCheck, AlertCircle, TrendingUp, MoreVertical, Edit, Mail, BarChart2, Loader2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu, 
@@ -31,6 +31,7 @@ interface DashboardStats {
 interface UserCompliance {
   id: string;
   employee: string;
+  email: string;
   department: string;
   progress: number;
   status: string;
@@ -66,6 +67,7 @@ export default function AdminDashboard() {
           return {
             id: user.id,
             employee: user.name || "Unknown",
+            email: user.email,
             department: user.department || "General",
             progress: progress > 100 ? 100 : progress,
             status,
@@ -180,28 +182,35 @@ export default function AdminDashboard() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuLabel>Compliance Options</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleAction("Send Reminder", user.employee)}>
-                            <Mail className="mr-2 h-4 w-4" /> Send Reminder
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href="/dashboard/admin/stats" className="cursor-pointer">
-                              <BarChart2 className="mr-2 h-4 w-4" /> View Analytics
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("Edit Profile", user.employee)}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit Profile
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                          <Link href={`/dashboard/employee/declaration?email=${user.email}`} title="View Declaration">
+                            <Eye className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+                          </Link>
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel>Compliance Options</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleAction("Send Reminder", user.employee)}>
+                              <Mail className="mr-2 h-4 w-4" /> Send Reminder
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href="/dashboard/admin/stats" className="cursor-pointer">
+                                <BarChart2 className="mr-2 h-4 w-4" /> View Analytics
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAction("Edit Profile", user.employee)}>
+                              <Edit className="mr-2 h-4 w-4" /> Edit Profile
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
