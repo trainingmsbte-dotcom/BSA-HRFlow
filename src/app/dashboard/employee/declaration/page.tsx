@@ -1,18 +1,20 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Printer, ChevronLeft, Loader2, Download, CheckCircle2 } from "lucide-react";
+import { Printer, ChevronLeft, Loader2, Download } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
-export default function FinalDeclarationPage() {
+function DeclarationContent() {
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get('email');
+  
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [policies, setPolicies] = useState<any[]>([]);
@@ -27,8 +29,9 @@ export default function FinalDeclarationPage() {
   useEffect(() => {
     const storedName = localStorage.getItem('userName');
     const storedEmail = localStorage.getItem('userEmail');
-    if (storedName) setUserName(storedName);
-    if (storedEmail) setUserEmail(storedEmail);
+    
+    // Determine which user we are viewing
+    const targetEmail = emailParam || storedEmail;
     
     setDeclarationDate(new Date().toLocaleDateString('en-GB', {
       day: '2-digit',
@@ -37,15 +40,18 @@ export default function FinalDeclarationPage() {
     }));
 
     async function fetchData() {
-      if (!storedEmail) return;
+      if (!targetEmail) return;
       try {
-        // 1. Fetch stable user info to get the persistent Employee ID
-        const userQuery = query(collection(db, "users"), where("email", "==", storedEmail));
+        // 1. Fetch stable user info
+        const userQuery = query(collection(db, "users"), where("email", "==", targetEmail));
         const userSnap = await getDocs(userQuery);
         if (!userSnap.empty) {
           const userData = userSnap.docs[0].data();
+          setUserName(userData.name || "Unknown User");
+          setUserEmail(userData.email || targetEmail);
           setEmployeeUniqueId(userData.employeeId || "N/A");
         } else {
+          setUserEmail(targetEmail);
           setEmployeeUniqueId("NOT_FOUND");
         }
 
@@ -55,12 +61,12 @@ export default function FinalDeclarationPage() {
         setPolicies(pList);
 
         // 3. Fetch completions for this user
-        const cQuery = query(collection(db, "completions"), where("userEmail", "==", storedEmail));
+        const cQuery = query(collection(db, "completions"), where("userEmail", "==", targetEmail));
         const cSnap = await getDocs(cQuery);
         const cList = cSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setCompletions(cList);
 
-        // 4. Generate a stable Certificate ID based on the first completion record or user doc ID
+        // 4. Generate a stable Certificate ID
         if (!cSnap.empty) {
           const firstCompId = cSnap.docs[0].id;
           setCertificateId(`BSA-CERT-IND-${firstCompId.substring(0, 8).toUpperCase()}`);
@@ -77,7 +83,7 @@ export default function FinalDeclarationPage() {
       }
     }
     fetchData();
-  }, []);
+  }, [emailParam]);
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
@@ -90,7 +96,7 @@ export default function FinalDeclarationPage() {
       <div className="h-screen flex items-center justify-center bg-muted/20">
         <div className="text-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="text-sm font-medium text-muted-foreground">Preparing your declaration...</p>
+          <p className="text-sm font-medium text-muted-foreground">Preparing declaration document...</p>
         </div>
       </div>
     );
@@ -100,81 +106,20 @@ export default function FinalDeclarationPage() {
     <div className="min-h-screen bg-muted/30 py-4 px-4 md:py-8 print:p-0 print:bg-white">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          @page {
-            size: A4 portrait;
-            margin: 10mm;
-          }
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color: black !important;
-            background: transparent !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-          }
-          html, body {
-            height: 100% !important;
-            width: 100% !important;
-            overflow: visible !important;
-            background: white !important;
-          }
-          aside, header, footer, .sidebar-trigger, .print-hidden, nav {
-            display: none !important;
-          }
-          main, .sidebar-inset, [data-sidebar="inset"], .min-h-screen {
-            background: white !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            overflow: visible !important;
-            height: auto !important;
-            display: block !important;
-          }
-          .declaration-container {
-            padding: 0 !important;
-            margin: 0 !important;
-            width: 100% !important;
-            max-width: none !important;
-          }
-          .declaration-paper {
-            width: 100% !important;
-            height: auto !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-            border-radius: 0 !important;
-          }
-          .border {
-            border: 1px solid black !important;
-          }
-          .border-b {
-            border-bottom: 1px solid black !important;
-          }
-          .border-t {
-            border-top: 1px solid black !important;
-          }
-          table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-          }
-          th, td {
-            border: 1px solid black !important;
-            padding: 4px 8px !important;
-            font-size: 10px !important;
-          }
-          h1, h2, h3, p, span {
-            color: black !important;
-          }
-          .badge-print {
-            border: 1px solid black !important;
-            padding: 2px 4px !important;
-            font-size: 8px !important;
-            border-radius: 2px !important;
-          }
-          .declaration-text {
-            font-size: 11px !important;
-            line-height: 1.4 !important;
-            margin-top: 10px !important;
-          }
+          @page { size: A4 portrait; margin: 10mm; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color: black !important; background: transparent !important; box-shadow: none !important; text-shadow: none !important; }
+          html, body { height: 100% !important; width: 100% !important; overflow: visible !important; background: white !important; }
+          aside, header, footer, .sidebar-trigger, .print-hidden, nav { display: none !important; }
+          main, .sidebar-inset, [data-sidebar="inset"], .min-h-screen { background: white !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; height: auto !important; display: block !important; }
+          .declaration-container { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: none !important; }
+          .declaration-paper { width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; border: none !important; border-radius: 0 !important; }
+          .border { border: 1px solid black !important; }
+          .border-b { border-bottom: 1px solid black !important; }
+          .border-t { border-top: 1px solid black !important; }
+          table { width: 100% !important; border-collapse: collapse !important; }
+          th, td { border: 1px solid black !important; padding: 4px 8px !important; font-size: 10px !important; }
+          h1, h2, h3, p, span { color: black !important; }
+          .declaration-text { font-size: 11px !important; line-height: 1.4 !important; margin-top: 10px !important; }
         }
       `}} />
 
@@ -184,18 +129,10 @@ export default function FinalDeclarationPage() {
             <ChevronLeft className="h-4 w-4" /> Back
           </Button>
           <div className="flex gap-2">
-            <Button 
-              variant="default" 
-              onClick={handlePrint} 
-              className="gap-2 bg-black text-white hover:bg-black/90"
-            >
+            <Button variant="default" onClick={handlePrint} className="gap-2 bg-black text-white hover:bg-black/90">
               <Download className="h-4 w-4" /> Export B&W PDF
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={handlePrint} 
-              className="gap-2"
-            >
+            <Button variant="outline" onClick={handlePrint} className="gap-2">
               <Printer className="h-4 w-4" /> Print
             </Button>
           </div>
@@ -204,11 +141,7 @@ export default function FinalDeclarationPage() {
         <Card className="declaration-paper border border-black shadow-lg bg-white print:border-none print:shadow-none">
           <CardHeader className="text-center py-4 border-b border-black">
              <div className="flex justify-center mb-2">
-               <img 
-                 src="https://bsagroup.in/wp-content/uploads/2025/07/bsa-corp-new-logo-july.png" 
-                 alt="BSA Logo" 
-                 className="h-10 w-auto object-contain"
-               />
+               <img src="https://bsagroup.in/wp-content/uploads/2025/07/bsa-corp-new-logo-july.png" alt="BSA Logo" className="h-10 w-auto object-contain" />
              </div>
              <div>
                <h1 className="text-lg font-bold uppercase">Induction Completion Declaration</h1>
@@ -307,3 +240,10 @@ export default function FinalDeclarationPage() {
   );
 }
 
+export default function FinalDeclarationPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}>
+      <DeclarationContent />
+    </Suspense>
+  );
+}

@@ -2,12 +2,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon, Hash, Sparkles, Wand2, Building2, Plus } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Hash, Sparkles, Wand2, Building2, Plus, FileText } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -95,11 +96,7 @@ export default function UsersManagementPage() {
       setIsLoading(false);
     }, (error) => {
       console.error("Firestore Error:", error);
-      toast({
-        variant: "destructive",
-        title: "Connection Error",
-        description: "Could not fetch users from Firestore.",
-      });
+      toast({ variant: "destructive", title: "Connection Error", description: "Could not fetch users." });
       setIsLoading(false);
     });
 
@@ -122,33 +119,17 @@ export default function UsersManagementPage() {
   const handleAddDepartment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDeptName.trim()) return;
-
     setIsAddingDept(true);
     try {
-      // Check for existing
       const existing = departments.find(d => d.name.toLowerCase() === newDeptName.toLowerCase());
       if (existing) throw new Error("Department already exists.");
-
-      await addDoc(collection(db, "departments"), {
-        name: newDeptName.trim(),
-        createdAt: serverTimestamp()
-      });
-
-      toast({
-        title: "Department Added",
-        description: `${newDeptName} is now available in the employee forms.`,
-      });
+      await addDoc(collection(db, "departments"), { name: newDeptName.trim(), createdAt: serverTimestamp() });
+      toast({ title: "Department Added", description: `${newDeptName} is now available.` });
       setNewDeptName("");
       setDeptOpen(false);
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Failed to Add Department",
-        description: error.message,
-      });
-    } finally {
-      setIsAddingDept(false);
-    }
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally { setIsAddingDept(false); }
   };
 
   const handleSendWelcomeMail = async (user: UserRecord) => {
@@ -161,21 +142,11 @@ export default function UsersManagementPage() {
         passkey: user.passkey || "TemporaryPassword123",
         loginLink: loginLink
       });
-      
       if (result.success) {
-        toast({
-          title: "Welcome Mail Sent",
-          description: `Credentials and portal link sent to ${user.email}. (Simulated)`,
-        });
-      } else {
-        throw new Error(result.message);
-      }
+        toast({ title: "Welcome Mail Sent", description: `Credentials sent to ${user.email}.` });
+      } else { throw new Error(result.message); }
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Mail Failed",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: "Mail Failed", description: error.message });
     }
   };
 
@@ -184,28 +155,18 @@ export default function UsersManagementPage() {
     if (usersWithoutId.length === 0) {
       return toast({ title: "All set", description: "All users already have Employee IDs." });
     }
-
     setIsFixingIds(true);
     try {
       let fixCount = 0;
       for (const user of usersWithoutId) {
         const newEmployeeId = Math.floor(100000 + Math.random() * 900000).toString();
-        const userRef = doc(db, "users", user.id);
-        await updateDoc(userRef, {
-          employeeId: newEmployeeId,
-          updatedAt: serverTimestamp(),
-        });
+        await updateDoc(doc(db, "users", user.id), { employeeId: newEmployeeId, updatedAt: serverTimestamp() });
         fixCount++;
       }
-      toast({
-        title: "IDs Generated",
-        description: `Successfully generated unique IDs for ${fixCount} employees.`,
-      });
+      toast({ title: "IDs Generated", description: `Successfully generated IDs for ${fixCount} employees.` });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Operation Failed", description: error.message });
-    } finally {
-      setIsFixingIds(false);
-    }
+      toast({ variant: "destructive", title: "Failed", description: error.message });
+    } finally { setIsFixingIds(false); }
   };
 
   const handleCleanupDuplicates = async () => {
@@ -213,95 +174,40 @@ export default function UsersManagementPage() {
     setIsCleaning(true);
     try {
       const emailGroups = new Map<string, UserRecord[]>();
-      const mobileGroups = new Map<string, UserRecord[]>();
-
       users.forEach(user => {
         const email = user.email.toLowerCase();
         if (!emailGroups.has(email)) emailGroups.set(email, []);
         emailGroups.get(email)?.push(user);
-
-        if (user.mobile) {
-          if (!mobileGroups.has(user.mobile)) mobileGroups.set(user.mobile, []);
-          mobileGroups.get(user.mobile)?.push(user);
-        }
       });
-
       let deleteCount = 0;
-      const idsToDelete = new Set<string>();
-
-      emailGroups.forEach((group) => {
+      for (const group of Array.from(emailGroups.values())) {
         if (group.length > 1) {
-          const sorted = [...group].sort((a, b) => {
-            const timeA = a.createdAt?.seconds || 0;
-            const timeB = b.createdAt?.seconds || 0;
-            return timeB - timeA;
-          });
-          sorted.slice(1).forEach(u => idsToDelete.add(u.id));
+          const sorted = [...group].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+          for (const u of sorted.slice(1)) {
+            await deleteDoc(doc(db, "users", u.id));
+            deleteCount++;
+          }
         }
-      });
-
-      mobileGroups.forEach((group) => {
-        if (group.length > 1) {
-          const sorted = [...group].sort((a, b) => {
-            const timeA = a.createdAt?.seconds || 0;
-            const timeB = b.createdAt?.seconds || 0;
-            return timeB - timeA;
-          });
-          sorted.slice(1).forEach(u => idsToDelete.add(u.id));
-        }
-      });
-
-      for (const id of idsToDelete) {
-        await deleteDoc(doc(db, "users", id));
-        deleteCount++;
       }
-
-      toast({
-        title: "Cleanup Complete",
-        description: `Successfully identified and removed ${deleteCount} duplicate records.`,
-      });
+      toast({ title: "Cleanup Complete", description: `Removed ${deleteCount} duplicates.` });
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Cleanup Failed",
-        description: error.message,
-      });
-    } finally {
-      setIsCleaning(false);
-    }
+      toast({ variant: "destructive", title: "Cleanup Failed", description: error.message });
+    } finally { setIsCleaning(false); }
   };
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.passkey) {
-      return toast({
-        variant: "destructive",
-        title: "Missing Fields",
-        description: "Please fill in Name, Email, and a Default Passkey.",
-      });
+      return toast({ variant: "destructive", title: "Missing Fields", description: "Name, Email, and Passkey are required." });
     }
-
     setIsAdding(true);
     try {
       const creatorEmail = localStorage.getItem('userEmail') || "System";
       const usersRef = collection(db, "users");
-      
       const emailCheck = query(usersRef, where("email", "==", formData.email));
       const emailSnap = await getDocs(emailCheck);
-      if (!emailSnap.empty) {
-        throw new Error("A user with this email already exists.");
-      }
-
-      if (formData.mobile) {
-        const mobileCheck = query(usersRef, where("mobile", "==", formData.mobile));
-        const mobileSnap = await getDocs(mobileCheck);
-        if (!mobileSnap.empty) {
-          throw new Error("A user with this mobile number already exists.");
-        }
-      }
-
+      if (!emailSnap.empty) throw new Error("Email already exists.");
       const newEmployeeId = Math.floor(100000 + Math.random() * 900000).toString();
-
       await addDoc(collection(db, "users"), {
         employeeId: newEmployeeId,
         name: formData.name,
@@ -315,39 +221,15 @@ export default function UsersManagementPage() {
         createdAt: serverTimestamp(),
         createdByEmail: creatorEmail,
       });
-
-      // Synchronize to Google Sheet if configured (using server-side environment variables)
       syncUserToSheet({
-        name: formData.name,
-        email: formData.email,
-        mobile: formData.mobile,
-        role: formData.role,
-        department: formData.department
-      }).then(result => {
-        if (!result.success && result.message !== 'Google Sheet ID is not configured.') {
-          toast({
-            variant: "destructive",
-            title: "Sheet Sync Failed",
-            description: result.message,
-          });
-        }
+        name: formData.name, email: formData.email, mobile: formData.mobile, role: formData.role, department: formData.department
       });
-
-      toast({
-        title: "User Added",
-        description: `${formData.name} (ID: ${newEmployeeId}) has been added and recorded.`,
-      });
+      toast({ title: "User Added", description: `${formData.name} added.` });
       setAddOpen(false);
       setFormData({ name: "", email: "", mobile: "", role: "Employee", department: "Engineering", passkey: "" });
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Operation Failed",
-        description: error.message,
-      });
-    } finally {
-      setIsAdding(false);
-    }
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally { setIsAdding(false); }
   };
 
   const handleEditClick = (user: UserRecord) => {
@@ -365,29 +247,10 @@ export default function UsersManagementPage() {
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingUser || !formData.name || !formData.email) return;
-
+    if (!editingUser) return;
     setIsEditing(true);
     try {
-      const usersRef = collection(db, "users");
-      const emailCheck = query(usersRef, where("email", "==", formData.email));
-      const emailSnap = await getDocs(emailCheck);
-      const isEmailDuplicate = emailSnap.docs.some(d => d.id !== editingUser.id);
-      if (isEmailDuplicate) {
-        throw new Error("Another user already has this email.");
-      }
-
-      if (formData.mobile) {
-        const mobileCheck = query(usersRef, where("mobile", "==", formData.mobile));
-        const mobileSnap = await getDocs(mobileCheck);
-        const isMobileDuplicate = mobileSnap.docs.some(d => d.id !== editingUser.id);
-        if (isMobileDuplicate) {
-          throw new Error("Another user already has this mobile number.");
-        }
-      }
-
-      const userRef = doc(db, "users", editingUser.id);
-      await updateDoc(userRef, {
+      await updateDoc(doc(db, "users", editingUser.id), {
         name: formData.name,
         email: formData.email,
         mobile: formData.mobile,
@@ -396,55 +259,27 @@ export default function UsersManagementPage() {
         passkey: formData.passkey,
         updatedAt: serverTimestamp(),
       });
-      toast({
-        title: "User Updated",
-        description: `${formData.name}'s record has been updated.`,
-      });
+      toast({ title: "User Updated", description: "Record saved." });
       setEditOpen(false);
-      setEditingUser(null);
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: error.message,
-      });
-    } finally {
-      setIsEditing(false);
-    }
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally { setIsEditing(false); }
   };
 
   const handleDeleteUser = async (userId: string, userName: string, targetRole: string, targetEmail: string) => {
     const currentUserEmail = localStorage.getItem('userEmail');
     const currentUserRecord = users.find(u => u.email === currentUserEmail);
-
     if (currentUserEmail === targetEmail) {
-      return toast({
-        variant: "destructive",
-        title: "Action Restricted",
-        description: "You cannot delete your own account.",
-      });
+      return toast({ variant: "destructive", title: "Restricted", description: "Cannot delete yourself." });
     }
-
     if (targetRole === 'Admin' && currentUserRecord?.createdByEmail === targetEmail) {
-      return toast({
-        variant: "destructive",
-        title: "Access Denied",
-        description: "Security Protection: You cannot delete your parent admin account.",
-      });
+      return toast({ variant: "destructive", title: "Denied", description: "Cannot delete parent admin." });
     }
-
     try {
       await deleteDoc(doc(db, "users", userId));
-      toast({
-        title: "User Removed",
-        description: `${userName} was deleted from Firestore.`,
-      });
+      toast({ title: "Removed", description: `${userName} deleted.` });
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Delete Failed",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: "Error", description: error.message });
     }
   };
 
@@ -455,7 +290,6 @@ export default function UsersManagementPage() {
     u.department?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Combine default depts with Firestore depts
   const defaultDepts = ["Engineering", "Marketing", "Sales", "HR", "Operations", "Finance"];
   const allDepts = Array.from(new Set([...defaultDepts, ...departments.map(d => d.name)]));
 
@@ -464,159 +298,37 @@ export default function UsersManagementPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-primary">User Management</h1>
-          <p className="text-muted-foreground">Manage employees, default passkeys, and record synchronization.</p>
+          <p className="text-muted-foreground">Manage employees and tracking records.</p>
         </div>
-
         <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
           <Dialog open={deptOpen} onOpenChange={setDeptOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-primary hover:bg-primary/5">
-                <Building2 className="h-4 w-4 mr-2" /> Add Department
-              </Button>
+              <Button variant="outline" size="sm" className="text-primary"><Building2 className="h-4 w-4 mr-2" /> Add Dept</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New Department</DialogTitle>
-                <DialogDescription>
-                  Enter the name of the new department to be added to the selection list.
-                </DialogDescription>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>Add Department</DialogTitle></DialogHeader>
               <form onSubmit={handleAddDepartment} className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dept-name">Department Name</Label>
-                  <Input 
-                    id="dept-name" 
-                    value={newDeptName} 
-                    onChange={(e) => setNewDeptName(e.target.value)} 
-                    placeholder="e.g. Quality Assurance" 
-                    required 
-                  />
-                </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={isAddingDept || !newDeptName.trim()} className="w-full">
-                    {isAddingDept ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                    Save Department
-                  </Button>
-                </DialogFooter>
+                <Input value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} placeholder="Dept Name" required />
+                <Button type="submit" disabled={isAddingDept} className="w-full">Save</Button>
               </form>
             </DialogContent>
           </Dialog>
-
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-primary hover:bg-primary/5"
-            onClick={handleGenerateMissingIds}
-            disabled={isFixingIds || users.length === 0}
-          >
-            {isFixingIds ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
-            Generate Missing IDs
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
-            onClick={handleCleanupDuplicates}
-            disabled={isCleaning || users.length === 0}
-          >
-            {isCleaning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            Cleanup Duplicates
-          </Button>
-          
+          <Button variant="outline" size="sm" onClick={handleGenerateMissingIds} disabled={isFixingIds}><Wand2 className="h-4 w-4 mr-2" /> IDs</Button>
+          <Button variant="outline" size="sm" onClick={handleCleanupDuplicates} disabled={isCleaning}><Sparkles className="h-4 w-4 mr-2" /> Cleanup</Button>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild>
-              <Button className="shadow-sm">
-                <UserPlus className="mr-2 h-4 w-4" /> Add New User
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" /> Add User</Button></DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New Employee</DialogTitle>
-                <DialogDescription>
-                  Create a new record. A unique Employee ID will be generated automatically.
-                </DialogDescription>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>Add Employee</DialogTitle></DialogHeader>
               <form onSubmit={handleAddUser} className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="add-name">Full Name</Label>
-                  <Input 
-                    id="add-name" 
-                    value={formData.name} 
-                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                    placeholder="John Doe" 
-                    required 
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="add-email">Email Address</Label>
-                  <Input 
-                    id="add-email" 
-                    type="email" 
-                    value={formData.email} 
-                    onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                    placeholder="john@bsa.com" 
-                    required 
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="add-mobile">Mobile Number</Label>
-                  <Input 
-                    id="add-mobile" 
-                    type="tel" 
-                    value={formData.mobile} 
-                    onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
-                    placeholder="+1 (555) 000-0000" 
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="add-passkey">Default Passkey</Label>
-                  <div className="relative">
-                    <Key className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="add-passkey" 
-                      type="text" 
-                      className="pl-9"
-                      value={formData.passkey} 
-                      onChange={(e) => setFormData({...formData, passkey: e.target.value})} 
-                      placeholder="TemporaryPassword123" 
-                      required 
-                    />
-                  </div>
-                </div>
+                <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Name" required />
+                <Input value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} placeholder="Email" required />
+                <Input value={formData.mobile} onChange={(e) => setFormData({...formData, mobile: e.target.value})} placeholder="Mobile" />
+                <Input value={formData.passkey} onChange={(e) => setFormData({...formData, passkey: e.target.value})} placeholder="Default Passkey" required />
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="add-role">Role</Label>
-                    <Select 
-                      value={formData.role} 
-                      onValueChange={(v) => setFormData({...formData, role: v})}
-                    >
-                      <SelectTrigger id="add-role"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Employee">Employee</SelectItem>
-                        <SelectItem value="Admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="add-dept">Department</Label>
-                    <Select 
-                      value={formData.department} 
-                      onValueChange={(v) => setFormData({...formData, department: v})}
-                    >
-                      <SelectTrigger id="add-dept"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {allDepts.map(dept => (
-                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={formData.role} onValueChange={(v) => setFormData({...formData, role: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Employee">Employee</SelectItem><SelectItem value="Admin">Admin</SelectItem></SelectContent></Select>
+                  <Select value={formData.department} onValueChange={(v) => setFormData({...formData, department: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allDepts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select>
                 </div>
-                <DialogFooter className="pt-4">
-                  <Button type="submit" disabled={isAdding} className="w-full">
-                    {isAdding ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Create & Sync"}
-                  </Button>
-                </DialogFooter>
+                <Button type="submit" disabled={isAdding} className="w-full">Save</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -625,225 +337,55 @@ export default function UsersManagementPage() {
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Employee</DialogTitle>
-            <DialogDescription>
-              Update the details for {editingUser?.name}.
-            </DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Edit Employee</DialogTitle></DialogHeader>
           <form onSubmit={handleUpdateUser} className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-name">Full Name</Label>
-              <Input 
-                id="edit-name" 
-                value={formData.name} 
-                onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                placeholder="John Doe" 
-                required 
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-email">Email Address</Label>
-              <Input 
-                id="edit-email" 
-                type="email" 
-                value={formData.email} 
-                onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                placeholder="john@bsa.com" 
-                required 
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-mobile">Mobile Number</Label>
-              <Input 
-                id="edit-mobile" 
-                type="tel" 
-                value={formData.mobile} 
-                onChange={(e) => setFormData({...formData, mobile: e.target.value})} 
-                placeholder="+1 (555) 000-0000" 
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-passkey">Passkey (Leave blank to keep current)</Label>
-              <Input 
-                id="edit-passkey" 
-                type="text" 
-                value={formData.passkey} 
-                onChange={(e) => setFormData({...formData, passkey: e.target.value})} 
-                placeholder="Reset passkey if needed" 
-              />
-            </div>
+            <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="Name" required />
+            <Input value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} placeholder="Email" required />
+            <Input value={formData.mobile} onChange={(e) => setFormData({...formData, mobile: e.target.value})} placeholder="Mobile" />
+            <Input value={formData.passkey} onChange={(e) => setFormData({...formData, passkey: e.target.value})} placeholder="Reset Passkey" />
             <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-role">Role</Label>
-                <Select 
-                  value={formData.role} 
-                  onValueChange={(v) => setFormData({...formData, role: v})}
-                >
-                  <SelectTrigger id="edit-role"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Employee">Employee</SelectItem>
-                    <SelectItem value="Admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-dept">Department</Label>
-                <Select 
-                  value={formData.department} 
-                  onValueChange={(v) => setFormData({...formData, department: v})}
-                >
-                  <SelectTrigger id="edit-dept"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {allDepts.map(dept => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={formData.role} onValueChange={(v) => setFormData({...formData, role: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Employee">Employee</SelectItem><SelectItem value="Admin">Admin</SelectItem></SelectContent></Select>
+              <Select value={formData.department} onValueChange={(v) => setFormData({...formData, department: v})}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allDepts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select>
             </div>
-            <DialogFooter className="pt-4">
-              <Button type="submit" disabled={isEditing} className="w-full">
-                {isEditing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</> : "Update User"}
-              </Button>
-            </DialogFooter>
+            <Button type="submit" disabled={isEditing} className="w-full">Update</Button>
           </form>
         </DialogContent>
       </Dialog>
 
       <Card className="border-none shadow-sm overflow-hidden">
         <CardHeader className="pb-3 border-b bg-muted/10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="text-lg">Employee Directory</CardTitle>
-            <div className="relative w-full max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search users or ID..." 
-                className="pl-9 bg-background" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Directory</CardTitle>
+            <div className="relative w-full max-w-sm"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search..." className="pl-9" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /></div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
-            <div className="h-64 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
+          {isLoading ? <div className="h-64 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div> : (
             <Table>
-              <TableHeader className="bg-muted/5">
-                <TableRow>
-                  <TableHead className="pl-6">User</TableHead>
-                  <TableHead>Employee ID</TableHead>
-                  <TableHead>Contact Information</TableHead>
-                  <TableHead>Role & Dept</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right pr-6">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+              <TableHeader><TableRow><TableHead className="pl-6">User</TableHead><TableHead>ID</TableHead><TableHead>Contact</TableHead><TableHead>Dept</TableHead><TableHead>Status</TableHead><TableHead className="text-right pr-6">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
-                    <TableRow key={user.id} className="hover:bg-muted/5 transition-colors">
-                      <TableCell className="pl-6">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={`https://picsum.photos/seed/${user.id}/100`} />
-                            <AvatarFallback>{user.name?.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-sm">{user.name}</span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Shield className={`h-3 w-3 ${user.role === 'Admin' ? 'text-primary' : 'text-muted-foreground'}`} />
-                              {user.role}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                         <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-muted-foreground">
-                            <Hash className="h-3 w-3" />
-                            {user.employeeId || "Not Set"}
-                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Mail className="h-3 w-3" />
-                            {user.email}
-                          </div>
-                          {user.mobile && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Phone className="h-3 w-3" />
-                              {user.mobile}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wider w-fit">
-                            {user.department}
-                          </Badge>
-                          {user.requiresChange && (
-                            <Badge variant="secondary" className="text-[9px] w-fit">
-                              Passkey Reset Pending
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.status === "Active" ? "default" : user.status === "Pending" ? "secondary" : "outline"}>
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={() => handleEditClick(user)}
-                          >
-                            <Edit2 className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuLabel>User Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleEditClick(user)}>
-                                <Edit2 className="mr-2 h-4 w-4" /> Edit Profile
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleSendWelcomeMail(user)}>
-                                <Mail className="mr-2 h-4 w-4" /> Send Welcome Mail
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => handleDeleteUser(user.id, user.name, user.role, user.email)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete from Firestore
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground italic">
-                      No users found in Firestore.
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="pl-6"><div className="flex items-center gap-3"><Avatar className="h-8 w-8"><AvatarFallback>{user.name[0]}</AvatarFallback></Avatar><div><p className="font-semibold text-sm">{user.name}</p><p className="text-xs text-muted-foreground">{user.role}</p></div></div></TableCell>
+                    <TableCell><div className="font-mono text-xs"><Hash className="h-3 w-3 inline mr-1" />{user.employeeId || "Not Set"}</div></TableCell>
+                    <TableCell><div className="text-xs text-muted-foreground"><p>{user.email}</p><p>{user.mobile}</p></div></TableCell>
+                    <TableCell><Badge variant="outline" className="text-[10px]">{user.department}</Badge></TableCell>
+                    <TableCell><Badge variant={user.status === "Active" ? "default" : "secondary"}>{user.status}</Badge></TableCell>
+                    <TableCell className="text-right pr-6">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEditClick(user)}><Edit2 className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                          <DropdownMenuItem asChild><Link href={`/dashboard/employee/declaration?email=${user.email}`}><FileText className="mr-2 h-4 w-4" /> View Declaration</Link></DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleSendWelcomeMail(user)}><Mail className="mr-2 h-4 w-4" /> Welcome Mail</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user.id, user.name, user.role, user.email)}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                )}
+                ))}
               </TableBody>
             </Table>
           )}
