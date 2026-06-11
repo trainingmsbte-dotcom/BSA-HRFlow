@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon, Hash, Sparkles, Wand2 } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Mail, Shield, Trash2, Edit2, Loader2, Phone, Key, Table as TableIcon, Hash, Sparkles, Wand2, Building2, Plus } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -19,7 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, onSnapshot, query, deleteDoc, doc, serverTimestamp, updateDoc, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, deleteDoc, doc, serverTimestamp, updateDoc, where, getDocs, orderBy } from "firebase/firestore";
 import {
   Dialog,
   DialogContent,
@@ -49,16 +49,26 @@ interface UserRecord {
   createdByEmail?: string;
 }
 
+interface Department {
+  id: string;
+  name: string;
+}
+
 export default function UsersManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState<UserRecord[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
   const [isFixingIds, setIsFixingIds] = useState(false);
+  const [isAddingDept, setIsAddingDept] = useState(false);
+  
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [deptOpen, setDeptOpen] = useState(false);
+  
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -70,11 +80,13 @@ export default function UsersManagementPage() {
     passkey: "",
   });
 
+  const [newDeptName, setNewDeptName] = useState("");
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "users"));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    // Listen for users
+    const qUsers = query(collection(db, "users"), orderBy("createdAt", "desc"));
+    const unsubscribeUsers = onSnapshot(qUsers, (querySnapshot) => {
       const usersData: UserRecord[] = [];
       querySnapshot.forEach((doc) => {
         usersData.push({ id: doc.id, ...doc.data() } as UserRecord);
@@ -91,8 +103,53 @@ export default function UsersManagementPage() {
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    // Listen for departments
+    const qDepts = query(collection(db, "departments"), orderBy("name", "asc"));
+    const unsubscribeDepts = onSnapshot(qDepts, (querySnapshot) => {
+      const deptsData: Department[] = [];
+      querySnapshot.forEach((doc) => {
+        deptsData.push({ id: doc.id, ...doc.data() } as Department);
+      });
+      setDepartments(deptsData);
+    });
+
+    return () => {
+      unsubscribeUsers();
+      unsubscribeDepts();
+    };
   }, [toast]);
+
+  const handleAddDepartment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newDeptName.trim()) return;
+
+    setIsAddingDept(true);
+    try {
+      // Check for existing
+      const existing = departments.find(d => d.name.toLowerCase() === newDeptName.toLowerCase());
+      if (existing) throw new Error("Department already exists.");
+
+      await addDoc(collection(db, "departments"), {
+        name: newDeptName.trim(),
+        createdAt: serverTimestamp()
+      });
+
+      toast({
+        title: "Department Added",
+        description: `${newDeptName} is now available in the employee forms.`,
+      });
+      setNewDeptName("");
+      setDeptOpen(false);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to Add Department",
+        description: error.message,
+      });
+    } finally {
+      setIsAddingDept(false);
+    }
+  };
 
   const handleSendWelcomeMail = async (user: UserRecord) => {
     try {
@@ -398,6 +455,10 @@ export default function UsersManagementPage() {
     u.department?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Combine default depts with Firestore depts
+  const defaultDepts = ["Engineering", "Marketing", "Sales", "HR", "Operations", "Finance"];
+  const allDepts = Array.from(new Set([...defaultDepts, ...departments.map(d => d.name)]));
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -407,6 +468,40 @@ export default function UsersManagementPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
+          <Dialog open={deptOpen} onOpenChange={setDeptOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-primary hover:bg-primary/5">
+                <Building2 className="h-4 w-4 mr-2" /> Add Department
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Department</DialogTitle>
+                <DialogDescription>
+                  Enter the name of the new department to be added to the selection list.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleAddDepartment} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dept-name">Department Name</Label>
+                  <Input 
+                    id="dept-name" 
+                    value={newDeptName} 
+                    onChange={(e) => setNewDeptName(e.target.value)} 
+                    placeholder="e.g. Quality Assurance" 
+                    required 
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="submit" disabled={isAddingDept || !newDeptName.trim()} className="w-full">
+                    {isAddingDept ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                    Save Department
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
           <Button 
             variant="outline" 
             size="sm" 
@@ -510,10 +605,9 @@ export default function UsersManagementPage() {
                     >
                       <SelectTrigger id="add-dept"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Engineering">Engineering</SelectItem>
-                        <SelectItem value="Marketing">Marketing</SelectItem>
-                        <SelectItem value="Sales">Sales</SelectItem>
-                        <SelectItem value="HR">HR</SelectItem>
+                        {allDepts.map(dept => (
+                          <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -601,10 +695,9 @@ export default function UsersManagementPage() {
                 >
                   <SelectTrigger id="edit-dept"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Engineering">Engineering</SelectItem>
-                    <SelectItem value="Marketing">Marketing</SelectItem>
-                    <SelectItem value="Sales">Sales</SelectItem>
-                    <SelectItem value="HR">HR</SelectItem>
+                    {allDepts.map(dept => (
+                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
