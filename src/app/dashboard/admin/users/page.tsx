@@ -59,7 +59,6 @@ export default function UsersManagementPage() {
   const [isFixingIds, setIsFixingIds] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [sheetId, setSheetId] = useState("");
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -74,9 +73,6 @@ export default function UsersManagementPage() {
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
 
   useEffect(() => {
-    const savedSheetId = localStorage.getItem('google_sheet_id');
-    if (savedSheetId) setSheetId(savedSheetId);
-
     const q = query(collection(db, "users"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const usersData: UserRecord[] = [];
@@ -218,14 +214,6 @@ export default function UsersManagementPage() {
     }
   };
 
-  const handleSaveSheetId = () => {
-    localStorage.setItem('google_sheet_id', sheetId);
-    toast({
-      title: "Settings Saved",
-      description: "Google Sheet ID updated for record synchronization.",
-    });
-  };
-
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.passkey) {
@@ -271,24 +259,22 @@ export default function UsersManagementPage() {
         createdByEmail: creatorEmail,
       });
 
-      if (sheetId) {
-        syncUserToSheet({
-          name: formData.name,
-          email: formData.email,
-          mobile: formData.mobile,
-          role: formData.role,
-          department: formData.department,
-          sheetId: sheetId
-        }).then(result => {
-          if (!result.success) {
-            toast({
-              variant: "destructive",
-              title: "Sheet Sync Failed",
-              description: result.message,
-            });
-          }
-        });
-      }
+      // Synchronize to Google Sheet if configured (using server-side environment variables)
+      syncUserToSheet({
+        name: formData.name,
+        email: formData.email,
+        mobile: formData.mobile,
+        role: formData.role,
+        department: formData.department
+      }).then(result => {
+        if (!result.success && result.message !== 'Google Sheet ID is not configured.') {
+          toast({
+            variant: "destructive",
+            title: "Sheet Sync Failed",
+            description: result.message,
+          });
+        }
+      });
 
       toast({
         title: "User Added",
@@ -441,16 +427,7 @@ export default function UsersManagementPage() {
             {isCleaning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
             Cleanup Duplicates
           </Button>
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border shadow-sm">
-            <TableIcon className="h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Google Sheet ID" 
-              className="h-8 w-40 border-none focus-visible:ring-0 shadow-none text-xs" 
-              value={sheetId}
-              onChange={(e) => setSheetId(e.target.value)}
-            />
-            <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={handleSaveSheetId}>Save</Button>
-          </div>
+          
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
               <Button className="shadow-sm">
