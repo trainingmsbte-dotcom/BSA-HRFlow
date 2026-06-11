@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -62,7 +63,7 @@ export function AppSidebar({ role = "employee" }: { role?: "admin" | "employee" 
             alt="BSA Logo" 
             className="h-10 w-auto object-contain min-w-[40px]"
           />
-          <span className="group-data-[collapsible=icon]:hidden whitespace-nowrap">BSA HRFlow</span>
+          <span className="group-data-[collapsible=icon]:hidden whitespace-nowrap">BSA Induction Program</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="py-4">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -205,7 +206,7 @@ export default function LoginPage() {
               className="h-16 w-auto object-contain"
             />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Login to BSA HRFlow</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">Login to BSA Induction Program</CardTitle>
           <CardDescription>Enter your credentials to access your portal</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">

@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShieldCheck, Zap, Users } from "lucide-react";
@@ -12,7 +13,7 @@ export default function LandingPage() {
             alt="BSA Logo" 
             className="h-10 w-auto object-contain"
           />
-          <span className="font-bold text-xl tracking-tighter text-primary">BSA HRFlow</span>
+          <span className="font-bold text-xl tracking-tighter text-primary">BSA Induction Program</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link className="text-sm font-medium hover:underline underline-offset-4" href="/login">
@@ -29,7 +30,7 @@ export default function LandingPage() {
                   Smart Employee Induction for <span className="text-primary">Modern Teams</span>
                 </h1>
                 <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-                  Automate policy acknowledgments, track engagement, and ensure compliance with our AI-powered HR portal.
+                  Automate policy acknowledgments, track engagement, and ensure compliance with our induction portal.
                 </p>
               </div>
               <div className="space-x-4">
@@ -54,8 +55,8 @@ export default function LandingPage() {
                 <div className="p-3 rounded-full bg-accent/10">
                   <Zap className="h-6 w-6 text-accent" />
                 </div>
-                <h3 className="text-xl font-bold">AI Summarization</h3>
-                <p className="text-muted-foreground">Instantly generate summaries and quiz questions from complex policy documents.</p>
+                <h3 className="text-xl font-bold">Document Management</h3>
+                <p className="text-muted-foreground">Instantly manage and publish complex policy documents to your workforce.</p>
               </div>
               <div className="flex flex-col items-center space-y-4 text-center">
                 <div className="p-3 rounded-full bg-secondary">
@@ -69,7 +70,7 @@ export default function LandingPage() {
         </section>
       </main>
       <footer className="flex flex-col gap-4 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">© 2024 BSA HRFlow Inc. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground">© 2024 BSA Induction Program. All rights reserved.</p>
         <nav className="sm:flex-1 flex justify-center gap-4 sm:gap-6">
           <Link className="text-xs hover:underline underline-offset-4" href="#">Terms of Service</Link>
           <Link className="text-xs hover:underline underline-offset-4" href="#">Privacy</Link>
