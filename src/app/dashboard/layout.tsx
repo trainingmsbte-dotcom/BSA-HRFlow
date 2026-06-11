@@ -7,7 +7,6 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { Bell, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [userName, setUserName] = useState<string>("User");
@@ -45,10 +44,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <p className="text-sm font-semibold">{userName}</p>
                   <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
                 </div>
-                <Avatar className="h-9 w-9 border shadow-sm cursor-pointer hover:opacity-80">
-                  <AvatarImage src={`https://picsum.photos/seed/${userName}/100`} />
-                  <AvatarFallback>{userName.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <div className="h-9 w-9 rounded-full border shadow-sm bg-muted flex items-center justify-center text-muted-foreground">
+                  <User className="h-5 w-5" />
+                </div>
               </div>
             </div>
           </header>
